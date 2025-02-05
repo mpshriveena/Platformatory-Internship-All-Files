@@ -1,0 +1,55 @@
+Enable Temporal’s Built-in Metrics
+9. Enable Temporal’s Built-in Metrics
+
+Temporal provides built-in metrics that can help you monitor the health of your workflows, activities, and infrastructure. Enabling these metrics is crucial for observing system performance and identifying potential bottlenecks or failures. These metrics can be integrated with Prometheus or Grafana for enhanced monitoring.
+9.1 Temporal Metrics Overview
+
+Temporal exposes a wide range of metrics that provide insights into the system's health, such as:
+
+    Workflow Execution Metrics:
+        temporal_service_workflow_duration: Tracks how long a workflow execution takes.
+        temporal_service_workflow_task_latency: Measures the latency of workflow tasks.
+
+    Activity Execution Metrics:
+        temporal_activity_execution_duration: Measures the duration of an activity execution.
+        temporal_activity_task_latency: Measures latency during the activity task execution.
+
+    Task Queue Metrics:
+        temporal_service_task_queue_length: Shows the length of task queues.
+        temporal_service_task_queue_latency: Measures latency for tasks in the queue.
+
+These metrics are useful for ensuring that workflows execute efficiently, tasks are scheduled properly, and there are no backlogs in the system.
+9.2 Enabling Metrics Collection
+
+To enable Temporal’s built-in metrics, you need to configure Temporal’s metrics service and expose the metrics endpoints. Here's how to do it:
+
+    Configure Temporal to Emit Metrics: In the Temporal configuration file (temporal.yaml), enable the metrics integration by specifying the metrics backend (e.g., Prometheus).
+
+    Example:
+
+    metrics:
+      prometheus:
+        endpoint: "0.0.0.0:9090"
+        enabled: true
+
+    Run Temporal with Metrics: After updating the configuration, restart Temporal services to apply the changes.
+
+    Scraping Metrics with Prometheus: Prometheus scrapes Temporal's metrics endpoint to collect time-series data. If you're using Kubernetes, you can configure Prometheus to scrape the Temporal service by adding a scrape_config in your Prometheus configuration file.
+
+    Accessing Metrics: Once Temporal is configured to emit metrics, you can access them by querying the Prometheus server or by using Grafana for visualization.
+
+9.3 Visualizing Metrics with Grafana
+
+Grafana is a powerful tool that can visualize time-series data from Prometheus. It allows you to build dashboards for monitoring Temporal’s metrics.
+
+Steps to integrate Grafana with Prometheus:
+
+    Install Grafana: If you haven’t installed Grafana, follow the installation guide.
+    Configure Prometheus as a Data Source:
+        In Grafana, go to Configuration > Data Sources, and select Prometheus as the data source.
+        Provide the URL of your Prometheus server (e.g., http://localhost:9090).
+    Import a Grafana Dashboard:
+        You can either create your custom dashboard or import existing dashboards that are tailored for Temporal metrics.
+        Visit the Grafana Dashboard Repository to find pre-built dashboards for Temporal.
+
+Once everything is set up, you will be able to visualize Temporal’s operational metrics and monitor the health of your Temporal cluster in real-time.

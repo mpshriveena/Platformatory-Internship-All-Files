@@ -1,0 +1,57 @@
+[
+    {
+        "name": "Student 1C",
+        "section": "C",
+        "english": 50,
+        "math": 52,
+        "physics": 90,
+        "chemistry": 33,
+        "biology": 30
+    },
+    {
+        "name": "Student 2C",
+        "section": "C",
+        "english": 90,
+        "math": 50,
+        "physics": 90,
+        "chemistry": 63,
+        "biology": 70
+    },
+    {
+        "name": "Student 3C",
+        "section": "C",
+        "english": 33,
+        "math": 50,
+        "physics": 66,
+        "chemistry": 63,
+        "biology": 54
+    },
+    {
+        "name": "Student 4C",
+        "section": "C",
+        "english": 100,
+        "math": 98,
+        "physics": 95,
+        "chemistry": 96,
+        "biology": 92
+    },
+    {
+        "name": "Student 5C",
+        "section": "C",
+        "english": 63,
+        "math": 50,
+        "physics": 90,
+        "chemistry": 63,
+        "biology": 65
+    },
+    {
+        "name": "Student 6C",
+        "section": "C",
+        "english": 10,
+        "math": 50,
+        "physics": 100,
+        "chemistry": 63,
+        "biology": 30
+    }
+    ]
+    

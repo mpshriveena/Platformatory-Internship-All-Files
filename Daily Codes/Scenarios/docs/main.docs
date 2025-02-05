@@ -1,0 +1,94 @@
+kafka1             | org.apache.kafka.common.config.ConfigException: 
+Invalid value javax.net.ssl.SSLHandshakeException: PKIX path validation failed: 
+java.security.cert.CertPathValidatorException: validity check failed for configuration 
+A client SSLEngine created with the provided settings can't connect to a server SSLEngine 
+created with those settings.
+
+kafka2             | org.apache.kafka.common.config.ConfigException: 
+Invalid value javax.net.ssl.SSLHandshakeException: PKIX path validation failed: 
+java.security.cert.CertPathValidatorException: validity check failed for configuration 
+A client SSLEngine created with the provided settings can't connect to a server SSLEngine 
+created with those settings.
+
+kafka3             | org.apache.kafka.common.config.ConfigException: 
+Invalid value javax.net.ssl.SSLHandshakeException: PKIX path validation failed: 
+java.security.cert.CertPathValidatorException: validity check failed for configuration 
+A client SSLEngine created with the provided settings can't connect to a server SSLEngine 
+created with those settings.
+
+schema-registry    | java.io.IOException: Failed to authenticate
+schema-registry    | Caused by: javax.security.auth.login.LoginException: 
+An internal error occurred while retrieving token from callback handler
+schema-registry    | Caused by: org.apache.kafka.common.KafkaException: 
+javax.security.auth.login.LoginException: An internal error occurred while retrieving token from callback handler
+
+connect            | [2024-11-13 09:18:50,276] ERROR Stopping due to error (org.apache.kafka.connect.cli.ConnectDistributed:88)
+connect            | org.apache.kafka.common.KafkaException: Failed to create new KafkaAdminClient
+
+control-center     | [2024-11-13 09:21:36,102] ERROR [restClient-m11d13-1-thread-7] Unexpected exception sending HTTP Request. 
+(io.confluent.security.auth.client.rest.RestClient)
+
+openssl req -new -x509 -keyout ca-key.pem -out ca-cert.pem -days 365 -subj "/C=IN/ST=Karnataka/L=Uttarahalli/O=Platformatory/OU=Streaming/CN=Platformatory-CA"
+
+For kafka1
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -validity 365 -genkey -keyalg RSA -dname "CN=kafka1, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -certreq -file kafka1-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka1-cert-file -out kafka1-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka1.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -import -file kafka1-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka1-cert-signed.pem
+#kafka1-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka1.server.truststore.jks
+
+For kafka2
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -validity 365 -genkey -keyalg RSA -dname "CN=kafka2, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -certreq -file kafka2-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka2-cert-file -out kafka2-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka2.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -import -file kafka2-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka2-cert-signed.pem
+#kafka2-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka2.server.truststore.jks
+
+For kafka3
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -validity 365 -genkey -keyalg RSA -dname "CN=kafka3, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -certreq -file kafka3-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka3-cert-file -out kafka3-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka3.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -import -file kafka3-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka3-cert-signed.pem
+#kafka3-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka3.server.truststore.jks
+
+For kafka1
+keytool -keystore kafka.server.keystore.jks -alias kafka1 -validity 365 -genkey -keyalg RSA -dname "CN=kafka1, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka.server.keystore.jks -alias kafka1 -certreq -file kafka1-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka1-cert-file -out kafka1-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka.server.keystore.jks -alias kafka1 -import -file kafka1-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka1-cert-signed.pem
+#kafka1-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka.server.truststore.jks
+
+For kafka2
+keytool -keystore kafka.server.keystore.jks -alias kafka2 -validity 365 -genkey -keyalg RSA -dname "CN=kafka2, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka.server.keystore.jks -alias kafka2 -certreq -file kafka2-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka2-cert-file -out kafka2-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka.server.keystore.jks -alias kafka2 -import -file kafka2-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka2-cert-signed.pem
+#kafka1-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka.server.truststore.jks
+
+For kafka3
+keytool -keystore kafka.server.keystore.jks -alias kafka3 -validity 365 -genkey -keyalg RSA -dname "CN=kafka3, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka.server.keystore.jks -alias kafka3 -certreq -file kafka3-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka3-cert-file -out kafka3-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore kafka.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka.server.keystore.jks -alias kafka3 -import -file kafka3-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka3-cert-signed.pem
+#kafka1-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka.server.truststore.jks
+
+change passwords in all server.properties
+

@@ -1,0 +1,84 @@
+connect            | [2024-11-15 11:49:01,359] ERROR [Worker clientId=connect-1, groupId=connect-cluster] Uncaught exception in herder work thread, exiting:  (org.apache.kafka.connect.runtime.distributed.DistributedHerder:361)
+connect            | org.apache.kafka.common.errors.TopicAuthorizationException: Not authorized to access topics: [connect-offsets]
+
+sasl.mechanism=OAUTHBEARER
+security.protocol=SASL_PLAINTEXT
+sasl.login.callback.handler.class=io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+              username="connectAdmin" \
+              password="connectAdmin" \
+              metadataServerUrls="http://kafka1:8090,http://kafka2:8090,http://kafka3:8090";
+
+super.users=User:bob;User:kafka1;User:kafka2;User:kafka3;User:mds;User:schemaregistryUser;User:controlcenterAdmin
+
+confluent login --url http://kafka1:8090 --ca-cert-path /etc/kafka/ca-cert.pem
+Enter your Confluent credentials:
+Username: mds
+Password: ***
+
+
+
+cat /var/lib/kafka/data/meta.properties
+#
+#Mon Nov 18 07:02:12 GMT 2024
+broker.id=1
+version=0
+cluster.id=JRvxsZixQGuRKBfTr01W4Q
+
+In addition to the connect-offsets topic, Kafka Connect often interacts with several other internal topics that need the correct permissions set. These topics include:
+    connect-offsets: Stores offsets for the Kafka Connect workers (i.e., the offsets for the records that connectors have processed).
+    connect-configs: Stores configurations for connectors (i.e., the configuration settings of connectors that have been started).
+    connect-status: Stores the status of connectors (i.e., whether a connector is running, failed, etc.).
+
+confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-offsets --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
+confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-configs --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
+confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-status --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
+
+[root@kafka1 kafka1]# confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-offsets --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
++---------------+-------------------+
+| Principal     | User:connectAdmin |
+| Role          | ResourceOwner     |
+| Resource Type | Topic             |
+| Name          | connect-offsets   |
+| Pattern Type  | LITERAL           |
++---------------+-------------------+
+[root@kafka1 kafka1]# confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-configs --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
++---------------+-------------------+
+| Principal     | User:connectAdmin |
+| Role          | ResourceOwner     |
+| Resource Type | Topic             |
+| Name          | connect-configs   |
+| Pattern Type  | LITERAL           |
++---------------+-------------------+
+[root@kafka1 kafka1]# confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Topic:connect-status --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
++---------------+-------------------+
+| Principal     | User:connectAdmin |
+| Role          | ResourceOwner     |
+| Resource Type | Topic             |
+| Name          | connect-status    |
+| Pattern Type  | LITERAL           |
++---------------+-------------------+
+
+connect            | [2024-11-18 07:52:44,312] ERROR Failed to authenticate (org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule:318)
+connect            | java.io.IOException: Failed to authenticate
+
+connect            | [2024-11-18 08:24:15,750] ERROR [Worker clientId=connect-1, groupId=connect-cluster] Uncaught exception in herder work thread, exiting:  (org.apache.kafka.connect.runtime.distributed.DistributedHerder:361)
+connect            | org.apache.kafka.common.errors.GroupAuthorizationException: Not authorized to access group: connect-cluster
+
+confluent iam rbac role-binding create --principal User:connectAdmin --role Admin --resource Group:connect-cluster --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
+
+
+confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Group:connect-cluster --prefix --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
+
+[root@kafka1 kafka1]# confluent iam rbac role-binding create --principal User:connectAdmin --role ResourceOwner --resource Group:connect-cluster --prefix --kafka-cluster N_wAFnQYQSykL6sPx6tF2w
++---------------+-------------------+
+| Principal     | User:connectAdmin |
+| Role          | ResourceOwner     |
+| Resource Type | Group             |
+| Name          | connect-cluster   |
+| Pattern Type  | PREFIXED          |
++---------------+-------------------+
+
+schema-registry    | Caused by: javax.security.auth.login.LoginException: An internal error occurred while retrieving token from callback handler
+schema-registry    | 	at org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule.identifyToken(OAuthBearerLoginModule.java:319)
+

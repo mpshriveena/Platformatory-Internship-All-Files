@@ -1,0 +1,154 @@
+Temporal Fault Tolerance and Error Handling
+1. Introduction to Fault Tolerance and Error Handling in Temporal
+
+Temporal provides a robust framework for building distributed applications where fault tolerance and error handling are essential components. In distributed systems, failures are inevitable, and Temporal helps ensure workflows continue running reliably even when unexpected errors or issues occur.
+
+This document covers how Temporal handles errors and failures in workflows and activities, including retry policies, timeouts, error handling strategies, and cancellation mechanisms.
+2. Understanding Fault Tolerance in Temporal
+
+Temporal’s architecture is designed to provide fault tolerance in several critical areas:
+
+    Workflow Persistence: Temporal ensures that workflow state is persistent and can be recovered in case of failures.
+    Activity Retries: Temporal provides automatic retry mechanisms for activities that may fail due to transient errors.
+    Workflow State and Event Replay: Temporal tracks all events in a workflow and can replay the events in case of failures, ensuring the workflow’s determinism.
+    Worker Failures: Temporal ensures that even if a worker process fails, another worker can pick up where the previous one left off, ensuring continuous execution of workflows.
+
+3. Workflow Error Handling
+
+In Temporal, workflows are designed to be deterministic, meaning the same input will always produce the same result. To maintain this, Temporal needs to handle errors in a predictable and controlled manner.
+3.1 Workflow Failures
+
+When a workflow fails due to an error in its logic, Temporal will attempt to recover the workflow based on the error. A failed workflow can be retried based on retry policies defined during its creation.
+
+You can specify a retry policy for workflows that are susceptible to transient failures. Temporal will retry the workflow based on the policy, and if it still fails after reaching the retry limit, it will mark the workflow as permanently failed.
+3.2 Workflow Failures with Custom Errors
+
+When defining workflows, you may need to throw custom exceptions to handle errors gracefully. Temporal allows workflows to throw custom errors, which can be caught and handled using try-except blocks.
+
+Example of a custom exception in a workflow:
+
+class MyCustomError(Exception):
+    pass
+
+@workflow.defn
+def example_workflow():
+    try:
+        # Some logic that might raise MyCustomError
+        pass
+    except MyCustomError as e:
+        # Handle error appropriately
+        pass
+
+This custom exception handling allows workflows to continue running even in the event of known failures.
+4. Activity Error Handling
+
+In Temporal, activities represent the unit of work that is performed by a worker. Activities can fail due to various reasons, such as network issues or unavailable resources. Temporal provides several mechanisms for handling activity errors.
+4.1 Activity Retries
+
+Temporal allows you to define retry policies for activities, which enables automatic retries in case an activity fails. You can specify a retry policy at the time of activity definition, and Temporal will automatically retry the activity based on the policy.
+
+Example of an activity with retry policy:
+
+@activity.defn
+def my_activity():
+    # Activity logic here
+    pass
+
+activity_options = ActivityOptions(
+    schedule_to_close_timeout=timedelta(seconds=30),
+    retry_policy=RetryPolicy(
+        initial_interval=timedelta(seconds=2),
+        maximum_attempts=5
+    )
+)
+
+my_activity_with_retry = my_activity.options(activity_options)
+
+In this example:
+
+    The initial_interval defines the time between retries.
+    The maximum_attempts limits how many times an activity will be retried before it is considered failed.
+
+4.2 Handling Activity Timeouts
+
+Temporal allows you to define various types of timeouts for activities, such as:
+
+    Schedule-to-start timeout: The maximum time allowed before the activity starts execution.
+    Schedule-to-close timeout: The maximum time allowed for the activity to complete.
+    Start-to-close timeout: The maximum time allowed for the activity from the time it starts until it finishes.
+
+Example of setting a timeout for an activity:
+
+activity_options = ActivityOptions(
+    schedule_to_close_timeout=timedelta(seconds=10)
+)
+
+If an activity exceeds the defined timeout, Temporal will fail the activity and trigger a retry (if a retry policy is defined).
+4.3 Activity Cancellation
+
+Activities can also be canceled, either because the workflow is canceled or due to specific cancellation requests. Temporal ensures that canceled activities are handled gracefully, allowing for cleanup operations if necessary.
+
+Example of handling activity cancellation:
+
+@activity.defn
+def my_activity():
+    try:
+        # Do some long-running task
+    except ActivityCancellationError:
+        # Perform cleanup or handle cancellation logic
+        pass
+
+Activities should include cancellation handling logic to ensure that resources are freed properly when they are canceled.
+5. Temporal Retry Policies
+
+Temporal’s retry mechanism is a critical feature for fault tolerance. It allows workflows and activities to be retried automatically according to predefined retry policies. These policies can help reduce the impact of transient failures.
+5.1 Defining Retry Policies for Activities
+
+Retry policies define the conditions under which Temporal will automatically retry an activity. You can define the following parameters for an activity retry policy:
+
+    initial_interval: The amount of time to wait before retrying the first time.
+    maximum_interval: The maximum amount of time to wait between retries.
+    backoff_coefficient: A factor to multiply the retry interval by after each retry.
+    maximum_attempts: The maximum number of retry attempts before giving up on the activity.
+
+Example retry policy for an activity:
+
+retry_policy = RetryPolicy(
+    initial_interval=timedelta(seconds=1),
+    maximum_interval=timedelta(seconds=10),
+    backoff_coefficient=2,
+    maximum_attempts=5
+)
+
+activity_options = ActivityOptions(
+    retry_policy=retry_policy
+)
+
+5.2 Defining Retry Policies for Workflows
+
+Temporal also supports retry policies for workflows. Similar to activity retries, you can define how workflows should be retried in the case of failures. You can specify retry policies for workflow execution based on transient errors.
+
+Example retry policy for a workflow:
+
+workflow_options = WorkflowOptions(
+    retry_policy=RetryPolicy(
+        initial_interval=timedelta(seconds=2),
+        maximum_attempts=3
+    )
+)
+
+Workflows with retry policies will be retried automatically if they fail due to transient errors.
+6. Handling Failures Gracefully
+
+Temporal emphasizes graceful error handling. Workflows and activities should be designed to handle failures and retries in a way that minimizes disruption. Here are some strategies for graceful error handling:
+
+    Implement Retry Logic: Use retry policies to handle transient failures, which are common in distributed systems.
+    Define Clear Error Handling: Use try-except blocks in workflows and activities to handle specific errors gracefully.
+    Track Workflow and Activity States: Ensure that workflows and activities maintain correct states so they can resume in the event of a failure.
+    Use Cancellations and Cleanups: Handle cancellations properly and clean up resources when needed, especially in long-running workflows.
+
+7. Conclusion
+
+Fault tolerance and error handling are fundamental for building robust distributed applications. Temporal provides powerful tools to handle failures in workflows and activities, including retry policies, timeouts, error handling strategies, and cancellation mechanisms.
+
+By leveraging Temporal’s built-in fault tolerance features, you can build highly reliable and resilient workflows that continue operating effectively even in the face of errors or failures.

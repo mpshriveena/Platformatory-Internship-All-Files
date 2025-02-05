@@ -1,0 +1,24 @@
+version: '3.7'
+
+services:
+  node1:
+    image: ansible-node
+    container_name: node1
+    hostname: node1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2222:22"
+    restart: unless-stopped
+
+  node2:
+    image: ansible-node
+    container_name: node2
+    hostname: node2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2223:22"
+    restart: unless-stopped

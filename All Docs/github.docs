@@ -1,0 +1,12 @@
+Steps for Pushing into a GitHub Repository
+
+cd /home/mpshriveena/Desktop/Platformatory/
+git init
+git remote add origin https://github.com/mpshriveena/Platformatory-Internship-All-Files.git
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git push -u origin main
+
+Execute this command if you get this error. "fatal: remote origin already exists"
+git remote remove origin

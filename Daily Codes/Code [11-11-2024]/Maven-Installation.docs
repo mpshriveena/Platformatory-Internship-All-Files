@@ -1,0 +1,6 @@
+Maven Installation Procedure
+
+sudo apt update #update
+sudo apt install maven #install maven
+mvn -v #Verify Installation
+

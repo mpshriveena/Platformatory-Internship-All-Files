@@ -1,0 +1,224 @@
+first I executed this using python3 ../temporal_codes/workflow.py
+workflow.py
+from temporalio import workflow
+@workflow.defn
+class GreetSomeone():
+    @workflow.run
+    async def run(self, name:str) -> str:
+        return f"Hello {name}!"
+    
+@workflow.defn
+class GreetSomeoneSpanish():
+    @workflow.run
+    async def run(self, name:str) -> str:
+        return f"Hola {name}!"
+Next I executed this using python3 ../temporal_codes/translate.py
+translate.py
+import aiohttp
+import urllib.parse
+from temporalio import activity
+class TranslateActivities:
+    def __init__(self, session: aiohttp.ClientSession):
+        self.session = session
+    @activity.defn
+    async def greet_in_spanish(self, name: str) -> str:
+        greeting = await self.call_service("get-spanish-greeting", name)
+        return greeting
+    # Utility method for making calls to the microservices
+    async def call_service(self, stem: str, name: str) -> str:
+        base = f"http://localhost:9999/{stem}"
+        url = f"{base}?name={urllib.parse.quote(name)}"
+        async with self.session.get(url) as response:
+            translation = await response.text()
+            if response.status >= 400:
+                raise ApplicationError(
+                    f"HTTP Error {response.status}: {translation}",
+                    # We want to have Temporal automatically retry 5xx but not 4xx
+                    non_retryable=response.status < 500,
+                )
+            return translation
+Next I executed this using python3 ../temporal_codes/translate_activity_registration.py
+translate_activity_registration.py
+import asyncio
+import aiohttp
+from temporalio.client import Client
+from temporalio.worker import Worker
+from translate import TranslateActivities
+from workflow import GreetSomeoneSpanish
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")  
+    # Run the worker
+    async with aiohttp.ClientSession() as session:
+        activities = TranslateActivities(session)
+        worker = Worker(
+            client,
+            task_queue="greeting-tasks",
+            workflows=[GreetSomeoneSpanish],
+            activities=[activities.greet_in_spanish],
+        )
+        await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+Next I executed this using python3 ../temporal_codes/execute_translate_activity.py
+from datetime import timedelta
+from temporalio import workflow
+# Import activity, passing it through the sandbox without reloading the module
+with workflow.unsafe.imports_passed_through():
+    from translate import TranslateActivities
+@workflow.defn
+class GreetSomeone:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        greeting = await workflow.execute_activity_method(
+            TranslateActivities.greet_in_spanish,
+            name,
+            start_to_close_timeout=timedelta(seconds=5),
+        )
+        return f"{greeting}"
+meanwhile this file is running in the background
+from flask import Flask, request
+import urllib.parse
+app = Flask(__name__)
+@app.route('/get-spanish-greeting', methods=['GET'])
+def get_spanish_greeting():
+    name = request.args.get('name', '')
+    return f"Hola, {name}!"
+if __name__ == '__main__':
+    app.run(host='localhost', port=9999)
+The issue is any workflow is not getting created when I view the ui
+
+The code is re-trying again again instead of just printing the error
+
+replay_workflow.py
+import json
+import asyncio
+from temporalio.worker import Replayer
+from temporalio.client import WorkflowHistory
+from workflow import GreetSomeone
+
+async def replay_workflow():
+    # Load event history from a JSON file using json.load()
+    with open("/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal_codes/workflow/replay_workflow/history.json", "r") as f:
+        # Use json.load() to parse the JSON content of the event history file
+        history_json = json.load(f)
+    events = history_json["events"]
+    # Convert the loaded JSON history into a WorkflowHistory object
+    workflow_id = "greeting-workflow"  # Replace with the actual workflow ID
+    history = {
+    'events': events  # Assuming 'events' holds the historical events you want to pass
+    }
+
+# Now call the from_json method with both required arguments
+    workflow_history = WorkflowHistory.from_json(workflow_id, history)
+
+    # Create a Replayer for your specific workflow
+    replayer = Replayer(workflows=[GreetSomeone])
+
+    # Replay the workflow with the loaded event history
+    result = await replayer.replay_workflow(workflow_history)
+    payload = result.history.events[-1].workflow_execution_completed_event_attributes.result.payloads
+    # Extract the 'data' field from the payload, which contains the actual result (e.g., "Hello veena!")
+    result_data = payload[0].data.decode('utf-8')  # Decode base64-encoded data
+
+    print(f"Replayed Workflow Result: {result_data}")
+
+# Run the async function
+if __name__ == "__main__":
+    asyncio.run(replay_workflow())
+
+worflow.py
+from temporalio import workflow
+@workflow.defn
+class GreetSomeone():
+    @workflow.run
+    async def run(self, name:str) -> str:
+        return f"Hello {name}!"
+ Can you explain everyline in replay_workflow.py. Actually what is replaying? what is it doing? how it is generating output without running worker. why i see no new workflow in ui
+
+See when i run the program to cancel, cancel request has been sent. Now how to handle it. I mean how to make a workflow sop if cancellation request is received
+
+max_execution_time = 10  # Time to wait before canceling the activity
+        start_time = time.time()  # Record the start time
+
+        try:
+            # Run the activity and wait for the result
+            while True:
+                # Check if the activity exceeds the max execution time
+                elapsed_time = time.time() - start_time
+                if elapsed_time > max_execution_time:
+                    await activity_handle.cancel()  # Manually cancel the activity if it exceeds time limit
+                    return "Activity was cancelled due to exceeding time limit."
+
+                # Check if the activity has finished before timeout
+                result = await activity_handle
+                return f"Activity completed: {result}"
+
+can we do my loan application . firts how to do 1st subdivision
+not like this. when input data comes, this should start the workflow with activity and that activity only should put in database
+
+
+
+1. Demonstrate the following using split terminals:
+- Create a topic with 3 partitions
+- Start 2 consumers belonging to the same group on the created topic
+- Produce to the topic and observe the message distribution
+- Start another consumer with the same group and observe the message distribution
+- Start one more consumer with the same group and observe the message distribution
+- Explain the observations with conceptual knowledge
+
+2. Produce the mark sheets of students of Class and find the overall pass percentage of each section using a Consumer.
+- There are 3 sections i.e. A, B, C in Class 8. Each section has 100 students.
+- Create a topic with 3 partition in Confluent Cloud
+- Produce the student marksheets of each section to a separate partition (One partition per section)
+- Example marksheet JSON data,
+{
+  "name": "Alice",
+  "section": "A",
+  "english": 80,
+  "math": 35,
+  "physics": 63,
+  "chemistry": 77,
+  "biology": 55
+}
+- Randomize the marks and generate marksheets for the students. But keep in mind, some of the marks need to be less than 60.
+- Start 3 consumers and assign (not subscribe) each one to a partition. The consumer should do the following,
+        - For every student, if the total aggregate marks is greater than 300, then the student is considered "Pass" or else "Failed".
+        - Calculate the Pass percentage of the Section and print the output.
+        - Consumers can exactly consume 100 messages or close the poll loop if there is no new data.
+- Each Consumer should finally print something like below:
+       Section: A
+       Pass percentage: 72%
+       Fail percentage: 28%
+
+
+3. Setup confluent platform cluster and demonstrate Control Center with:
+- Topics
+- Consumers
+- Producers
+- KSQL/KStreams
+
+4. Develop Avro producer and Avro consumer with Schema Registry integration to produce and consume messages from Kafka. Demonstrate performance metrics using Kafka perf-test CLIs to observe the throughput and latency metrics with changes to Producer and Consumer configurations respectively.
+
+5. Create kubernetes cluster locally in laptop
+6. Deploy a basic nginx application built inside a container. For e.g., write a basic application in python/java (flask web app), containerize it and deploy. Use dockerfile for this exercise
+7. Create a dockerfile (or yaml file) to deploy simple nginx container and :
+- verify status of container
+- logs of container
+- provide description of container image
+
+use kubectl command to perform above tasks.
+
+8. Create a deployment for nginx application:
+- scale deployment from 1 to 3
+- verify pod status
+
+Client meeting 3
+Date yesterday
+day
+Discussion summary:
+discussed on summary of tasks done in last week
+discussed on story board creation and reviewed our story board scenes
+provided feedback to reduce the number of storyboards
+discussed on class diagrams and wireframes
+provided insights on tasks splited
+provided clarity on github projects

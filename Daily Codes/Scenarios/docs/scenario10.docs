@@ -1,0 +1,91 @@
+kafka-console-producer --bootstrap-server kafka1:19092 --producer.config /opt/client/client.properties --topic international_orders
+kafka-console-producer --bootstrap-server kafka1:19092 --producer.config /opt/client/client.properties --topic domestic_orders
+kafka-console-consumer --bootstrap-server kafka1:19092 --consumer.config /opt/client/client.properties --from-beginning --topic international_orders
+kafka-console-consumer --bootstrap-server kafka1:19092 --consumer.config /opt/client/client.properties --from-beginning --topic domestic_orders
+
+kfkclient          | [2024-11-20 07:22:21,917] WARN [AdminClient clientId=adminclient-1] Connection to node 2 (kafka2/172.20.0.7:19093) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+kfkclient          | Error while executing topic command : Timed out waiting for a node assignment. Call: createTopics
+kfkclient          | [2024-11-20 07:22:22,683] ERROR org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: createTopics
+kfkclient          |  (kafka.admin.TopicCommand$)
+
+
+server.properties of kafka1
+listeners=CLIENT://:19092,BROKER://:19093,TOKEN://:19094
+advertised.listeners=CLIENT://kafka1:19092,BROKER://kafka1:19093,TOKEN://kafka1:19094
+server.properties of kafka2
+listeners=CLIENT://:29092,BROKER://:29093,TOKEN://:29094
+advertised.listeners=CLIENT://kafka2:19093,BROKER://kafka2:29093,TOKEN://kafka2:29094
+server.properties of kafka3
+listeners=CLIENT://:39092,BROKER://:39093,TOKEN://:39094
+advertised.listeners=CLIENT://kafka3:39092,BROKER://kafka3:39093,TOKEN://kafka3:39094
+This is the error in container kfkclient
+kfkclient          | [2024-11-20 07:22:19,762] WARN [AdminClient clientId=adminclient-1] Connection to node 2 (kafka2/172.20.0.7:19093) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+I understand the error is because of the misconfiguration in listerners and advertised listerners in kafka2 server.properties. But I want reason like why this configuration is causing this error
+
+The issue you're encountering is related to the mismatch between the listeners and advertised.listeners configurations in kafka2. This configuration mismatch can cause communication problems between Kafka brokers and clients, as well as between Kafka brokers themselves. Here's an in-depth explanation of why this misconfiguration is leading to the error:
+Understanding Listeners and Advertised Listeners
+
+    listeners: This configuration specifies the network interfaces and ports on which the broker will listen for incoming connections. These addresses are used by Kafka to bind and listen for traffic from clients (e.g., producers, consumers, or other brokers).
+
+    advertised.listeners: This configuration tells Kafka what address to advertise to clients (and other brokers) when they try to connect. This address should be what clients use to connect to the broker. It is essential that the advertised listener matches the correct IP address or hostname and port number that clients or brokers will use to reach this broker.
+
+The Problem with the kafka2 Configuration
+
+In the configuration of kafka2, the listeners and advertised.listeners settings are:
+
+    listeners in kafka2: 
+
+listeners=CLIENT://:29092,BROKER://:29093,TOKEN://:29094
+
+This means kafka2 is listening on:
+
+    CLIENT on port 29092
+    BROKER on port 29093
+    TOKEN on port 29094
+
+advertised.listeners in kafka2:
+
+    advertised.listeners=CLIENT://kafka2:19093,BROKER://kafka2:29093,TOKEN://kafka2:29094
+
+    This means kafka2 is advertising:
+        CLIENT on port 19093 (this is where the error stems from)
+        BROKER on port 29093
+        TOKEN on port 29094
+
+Why This Configuration Causes the Error
+
+The error you're seeing:
+
+Connection to node 2 (kafka2/172.20.0.7:19093) could not be established. Broker may not be available.
+
+Indicates that kfkclient (the client) is attempting to connect to kafka2 on port 19093, as advertised in the advertised.listeners configuration. However, this connection fails because kafka2 is not listening on port 19093.
+
+    Mismatch in the CLIENT listener port: The listeners configuration for kafka2 defines the CLIENT listener on port 29092, not 19093. However, in the advertised.listeners, it advertises the CLIENT listener on port 19093.
+        The client (kfkclient) is attempting to connect to kafka2 using the address kafka2:19093, but kafka2 is not listening on this port (19093); it's actually listening on port 29092 (as per listeners configuration).
+
+Consequences of This Mismatch
+
+    Broker Communication Issue: Kafka brokers exchange metadata and perform inter-broker communication using the advertised listener address. If one broker advertises an incorrect address for a listener, other brokers that attempt to communicate with it will be unable to establish a connection, as seen in your case where the client tries to connect to kafka2:19093.
+
+    Client Connection Issue: The client (kfkclient) is connecting to the wrong port because it was given the wrong advertised address (port 19093). It cannot reach the kafka2 broker because kafka2 is not listening on port 19093 for client connections.
+
+How to Fix This
+
+You need to ensure that the advertised.listeners for kafka2 reflect the correct ports that are actually being listened to. Specifically, you need to:
+
+    Correct the advertised CLIENT listener port in kafka2 to match the listeners configuration.
+        Since kafka2 is listening on 29092 for the CLIENT listener (from listeners=CLIENT://:29092), it should advertise the same port, not 19093.
+
+    Corrected advertised.listeners for kafka2:
+
+    advertised.listeners=CLIENT://kafka2:29092,BROKER://kafka2:29093,TOKEN://kafka2:29094
+
+    This ensures that:
+        The client will connect to kafka2:29092 (which is where kafka2 is actually listening for client connections).
+        The broker-to-broker communication on port 29093 (as defined) is correctly advertised.
+
+Summary
+
+The reason for the error is that the advertised.listeners configuration for kafka2 specifies the wrong port (19093) for the CLIENT listener, while kafka2 is actually listening on port 29092 for CLIENT connections (as per the listeners configuration). This mismatch causes the client (kfkclient) to attempt to connect to an unavailable port, resulting in the connection failure.
+
+To resolve the issue, you need to update advertised.listeners in kafka2 to advertise the correct ports that correspond to the actual listener configuration. Specifically, ensure the CLIENT listener is advertised on port 29092, not 19093.

@@ -1,0 +1,113 @@
+Steps to do in Confluent Platform when running in docker compose
+
+Dockerfile
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    openjdk-11-jre \
+    python3.9 \
+    python3-pip \
+    curl \
+    unzip
+RUN curl -O https://packages.confluent.io/archive/7.8/confluent-7.8.0.zip
+RUN unzip confluent-7.8.0.zip
+RUN apt-get install nano
+ENV CONFLUENT_HOME=/confluent-7.8.0
+ENV PATH=$PATH:$CONFLUENT_HOME/bin
+WORKDIR /confluent-platform
+CMD ["tail", "-f", "/dev/null"]
+
+version: "3"
+services:
+    confluent:
+       container_name: confluent-platform
+       build:
+           context: .
+       ports:
+           - '9021:9021'
+           - '9092:9092'
+           - '2181:2181'
+           - '8081:8081'
+           - '8083:8083'
+           - '8088:8088'
+       volumes:
+           - kafka-1-data:/var/lib/kafka/data
+           - ./json-task:/json-task
+volumes:
+  kafka-1-data:
+
+1) Start the container preferable in three terminals to start zookeeper, kafka and do other operations.
+cd Desktop/Platformatory/Daily\ Codes/january_tasks/confluent_platform/
+docker-compose up --build
+sudo docker exec -u root -it confluent-platform /bin/bash
+
+2) Set the listeners and advertised listeners same as container name
+nano /confluent-7.8.0/etc/kafka/server.properties
+
+listeners = PLAINTEXT://0.0.0.0:9092
+advertised.listeners=PLAINTEXT://localhost:9092
+
+3) To start or stop the zookeeper
+zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties
+zookeeper-server-stop $CONFLUENT_HOME/etc/kafka/zookeeper.properties
+
+4) To start or stop the kafka broker
+kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties
+kafka-server-stop $CONFLUENT_HOME/etc/kafka/server.properties
+
+5) To create topic, produce and consume.
+kafka-topics --bootstrap-server confluent-platform:9092 --list
+kafka-topics --bootstrap-server confluent-platform:9092 --topic first-topic --create
+kafka-console-producer --bootstrap-server confluent-platform:9092 --topic first-topic
+kafka-console-consumer --bootstrap-server confluent-platform:9092 --topic first-topic --from-beginning
+
+6) To delete a topic
+kafka-topics --bootstrap-server confluent-platform:9092 --topic consumer-demo --delete
+
+7) To describe the consumer group 
+kafka-consumer-groups --bootstrap-server confluent-platform:9092 --describe --group consumer-group-1
+
+8) To view all the commands available
+ls /confluent-7.8.0/bin
+
+9) To start kafka-rest
+kafka-rest-start $CONFLUENT_HOME/etc/kafka-rest/kafka-rest.properties
+
+10) To start kafka-connect
+connect-distributed $CONFLUENT_HOME/etc/kafka/connect-distributed.properties
+
+11) To start ksqldb
+ksql-server-start $CONFLUENT_HOME/etc/ksqldb/ksql-server.properties
+
+12) To start Schema-Registry
+schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties
+
+13) To start the control-center
+control-center-start $CONFLUENT_HOME/etc/confluent-control-center/control-center-dev.properties
+
+14) You have to set up Confluent Metrics Reporter to view broker metrics in control center
+
+Verify whether confluent-metrics-7.8.0-ce.jar file is present in $CONFLUENT_HOME/share/java/confluent-telemetry/ directory
+ls $CONFLUENT_HOME/share/java/confluent-telemetry/
+confluent-metrics-7.8.0-ce.jar
+
+nano /confluent-7.8.0/etc/kafka/server.properties
+
+Uncomment the following lines
+metric.reporters=io.confluent.metrics.reporter.ConfluentMetricsReporter
+confluent.metrics.reporter.bootstrap.servers=localhost:9092
+confluent.metrics.reporter.topic.replicas=1
+
+15) KSQL Commands Execution
+
+ksql
+
+CREATE STREAM FIRST_STREAM (
+  TOPICVALUE STRING
+) WITH (
+  KAFKA_TOPIC = 'first-topic',
+  VALUE_FORMAT = 'DELIMITED'
+);
+
+
+

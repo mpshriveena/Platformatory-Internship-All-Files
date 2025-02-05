@@ -1,0 +1,138 @@
+1)
+Does ksqlDB support exactly-once processing?
+ChatGPT said:
+ChatGPT
+
+Yes, ksqlDB supports exactly-once processing, but with some important nuances and considerations.
+Exactly-Once Semantics (EOS) in ksqlDB:
+
+ksqlDB, being built on top of Apache Kafka, leverages Kafka's Exactly-Once Semantics (EOS) for stream processing. Kafka ensures that messages are processed once and only once across multiple streams and sinks, including during failures or restarts.
+Key Points about Exactly-Once in ksqlDB:
+
+    Kafka Producers and Consumers:
+        ksqlDB relies on Kafka's producer and consumer configurations for guaranteeing exactly-once semantics. When producing to or consuming from Kafka topics, you need to enable the relevant configurations to achieve EOS. These configurations include setting the acks to all for producers, and the isolation.level to read_committed for consumers.
+
+    Kafka Streams Layer:
+        ksqlDB is built on Kafka Streams, which provides support for EOS by managing state (via Kafka Streams' transactional support) and ensuring no duplicate processing when there are failures. ksqlDB leverages this transactional layer to ensure that stateful operations, such as aggregations or windowed joins, are executed with exactly-once guarantees.
+
+    Sinks (Output Topics):
+        For output topics where processed data is written (such as materialized views, results of queries), ksqlDB can configure the Kafka producer to operate in exactly-once mode, ensuring that records are produced only once, even in the event of failures.
+
+    Enabling EOS:
+        To enable exactly-once semantics in ksqlDB, you need to ensure that both Kafka Streams and the Kafka producer/consumer are properly configured:
+            Kafka Producer: Configure the producer to use acks=all and enable transactional.id for transactional writes.
+            Kafka Consumer: Set the consumer to isolation.level=read_committed to only consume committed records.
+
+    Limitations & Overhead:
+        Enabling EOS introduces some overhead due to the transactional guarantees, which may impact throughput and performance, especially in high-volume environments. You also need to be mindful of transaction timeout and handling any errors or failures during transaction commits.
+
+Example of Setting Up EOS in ksqlDB:
+
+To enable exactly-once semantics, you can configure the ksqlDB application with the necessary Kafka Streams properties, typically in the ksqlDB server configuration or via client-level settings.
+
+For instance:
+
+"ksql.streams.producer.transactional.id": "my-transactional-id",
+"ksql.streams.consumer.isolation.level": "read_committed"
+
+This ensures that Kafka Streams, and by extension ksqlDB, operates in exactly-once mode for output topics.
+Conclusion:
+
+ksqlDB does support exactly-once processing by leveraging Kafka’s underlying mechanisms for exactly-once semantics, but you need to ensure proper configuration of both Kafka producers and consumers in your ksqlDB setup to enable these guarantees.
+
+2)
+A company disabled auto commit of offsets for their consumer application in order to have more control over the time at which offsets are committed. What's the simplest way to manually commit the offsets?
+
+Key Points:
+
+    enable.auto.commit=false: This disables the automatic committing of offsets after each poll() call, so you have control over when offsets are committed.
+
+    commitSync(): This method commits the offsets synchronously. It blocks until the commit is acknowledged by the Kafka broker. This is suitable for scenarios where you need strong guarantees that the offsets were committed before moving on.
+
+    commitAsync(): This method commits the offsets asynchronously. It doesn't block and allows the consumer to continue processing messages while the commit is in progress. This is typically used for higher throughput scenarios, but you lose some guarantee of whether the commit succeeded (unless you provide a callback to handle errors).
+
+    Offset Commit Timing: You can choose to commit offsets after processing a batch of messages or after each individual message, depending on your application's needs. Committing after processing a batch is often more efficient, but it requires you to ensure that processing is idempotent in case of failures.
+
+When to Commit Offsets:
+
+    After successful processing: Only commit the offset after the message has been successfully processed (e.g., after persisting data to a database).
+    Periodic commits: If you're processing in batches, you might commit offsets after processing a batch to reduce the number of commits.
+    Error handling: If processing fails, you can choose not to commit the offset, which allows you to reprocess the messages when the application restarts.
+
+Conclusion:
+
+The simplest way to manually commit offsets is to configure the consumer with enable.auto.commit=false, then use commitSync() or commitAsync() after you have successfully processed your messages.
+
+Question 6Incorrect
+
+Which connector configurations are mandatory for every connector using Kafka Connect?
+For every connector in Kafka Connect, the mandatory configurations are:
+
+    name
+    connector.class
+    tasks.max
+    topics (for source connectors) or topic (for sink connectors)
+
+These configurations are essential for setting up a connector instance in Kafka Connect and ensuring that it knows how to interact with Kafka topics and external systems.
+Incorrect
+
+In a point-to-point messaging domain, where are the messages exchanged between senders and receivers?
+In a **point-to-point messaging domain**, messages are exchanged between **senders and receivers** through a **message queue**.
+
+### Explanation:
+- **Point-to-Point Messaging**: In this messaging pattern, a **sender** sends a message to a **message queue**, and only one **receiver** consumes that message from the queue.
+- **Message Queue**: The queue acts as a temporary holding area where messages are stored until they are processed by the receiver. 
+- **Exclusive Delivery**: Once a receiver consumes a message from the queue, it is no longer available to other receivers (i.e., it is **not** broadcast to multiple consumers, as in a publish-subscribe model).
+
+### Key Characteristics of Point-to-Point Messaging:
+1. **Queue-based**: Messages are placed in a queue by the producer (sender), and they are processed by a single consumer (receiver). Each message is consumed by only one receiver.
+2. **Message Delivery**: In a point-to-point system, a message is delivered to **one** consumer. If there are multiple consumers, only one will process the message. This is often referred to as "one-to-one" messaging.
+3. **Asynchronous**: The sender doesn't need to wait for the receiver to process the message. The sender places the message in the queue, and the receiver processes it asynchronously.
+
+### Example in Kafka (Point-to-Point):
+In Kafka, a point-to-point messaging model can be achieved using **consumer groups**:
+- Kafka topics are typically used, and consumers within a **consumer group** consume messages from partitions of the topic. Each message in a partition is processed by only one consumer within the group, ensuring a point-to-point style of message consumption.
+  
+In summary, in a point-to-point messaging system, messages are exchanged between senders and receivers **through a message queue** (or equivalent system in some architectures, like Kafka with consumer groups).
+
+The Avro primitive types are:
+
+    string
+    int
+    long
+    float
+    double
+    boolean
+    bytes
+    nullIn Kafka, producers create and write messages to topic partitions. There are the following exceptions possible happening during callback.
+
+1: Non-Retriable exceptions (fatal, the message will never be sent):
+
+- InvalidTopicException
+
+- OffsetMetadataTooLargeException
+
+- RecordBatchTooLargeException
+
+- RecordTooLargeException
+
+- UnknownServerException
+
+2: Retriable exceptions (transient, may be covered by increasing the number of retries):
+
+- CorruptRecordException
+
+- InvalidMetadataException
+
+- NotEnoughReplicasAfterAppendException
+
+- NotEnoughReplicasException
+
+- OffsetOutOfRangeException
+
+- TimeoutException
+
+- UnknownTopicOrPartitionException
+
+
+Further reading: Exception Class.

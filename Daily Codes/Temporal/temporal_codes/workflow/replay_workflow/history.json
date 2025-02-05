@@ -1,0 +1,106 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2024-12-17T07:46:44.868373330Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "12583025",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "GreetSomeone"
+        },
+        "taskQueue": {
+          "name": "greeting-tasks",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "InZlZW5hIg=="
+            }
+          ]
+        },
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "157f233f-de97-4fdf-a907-dd71548f312b",
+        "identity": "27572@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "firstExecutionRunId": "157f233f-de97-4fdf-a907-dd71548f312b",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "workflowId": "greeting-workflow"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2024-12-17T07:46:44.868429485Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "12583026",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "greeting-tasks",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2024-12-17T07:46:44.905094598Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "12583031",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "27505@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "requestId": "487d1f59-d63e-4a3c-8a1e-34ace169a7c0",
+        "historySizeBytes": "302",
+        "workerVersion": {
+          "buildId": "c18c72b21f72130aa42e1f4319f3166b"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2024-12-17T07:46:44.937795450Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "12583035",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "27505@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "workerVersion": {
+          "buildId": "c18c72b21f72130aa42e1f4319f3166b"
+        },
+        "sdkMetadata": {
+          "coreUsedFlags": [
+            1,
+            2,
+            3
+          ]
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2024-12-17T07:46:44.937901927Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId": "12583036",
+      "workflowExecutionCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IkhlbGxvIHZlZW5hISI="
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId": "4"
+      }
+    }
+  ]
+}

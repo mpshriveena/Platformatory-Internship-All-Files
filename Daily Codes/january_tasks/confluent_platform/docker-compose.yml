@@ -1,0 +1,18 @@
+version: "3"
+services:
+    confluent:
+       container_name: confluent-platform
+       build:
+           context: .
+       ports:
+           - '9021:9021'
+           - '9092:9092'
+           - '2181:2181'
+           - '8081:8081'
+           - '8083:8083'
+           - '8088:8088'
+       volumes:
+           - kafka-1-data:/var/lib/kafka/data
+           - ./json-task:/json-task
+volumes:
+  kafka-1-data:

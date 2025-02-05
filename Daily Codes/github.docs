@@ -1,0 +1,40 @@
+Steps to Generate an id_rsa SSH Key
+
+    Generate RSA Key Run the following command to generate an RSA key:
+
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+    Replace "your_email@example.com" with your GitHub email.
+    Press Enter to save the key to the default location (~/.ssh/id_rsa).
+    Optionally, set a passphrase for added security.
+
+Add the Key to the SSH Agent Start the SSH agent and add your RSA key:
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+
+Copy the Public Key Copy the contents of the id_rsa.pub file:
+
+cat ~/.ssh/id_rsa.pub
+
+This is your public key.
+
+Add the Key to GitHub
+
+    Log in to your GitHub account.
+    Go to Settings > SSH and GPG keys.
+    Click New SSH key.
+    Paste the public key and save.
+
+Verify the Connection Test the connection with:
+
+ssh -T git@github.com
+
+You should see a message like:
+
+Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+
+Retry the Git Push Push your changes to the remote repository:
+
+    git push -u origin main
+

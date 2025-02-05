@@ -1,0 +1,130 @@
+﻿Scenario 3
+
+Problem Statement
+
+The client is unable to interact with the cluster using kafka-topics, kafka-console-producer or kafka-console-consumer using the super user bob(password - bob-secret) with some of the kakfa brokers as the bootstrap server. Only one of the kafka broker works as the bootstrap server.
+The error message when using kafka2 or kafka3 as the bootstrap-server
+[2023-07-26 13:20:58,720] ERROR [AdminClient clientId=adminclient-1] Connection to node 3 (kafka3/192.168.112.8:39092) failed authentication due to: Authentication failed: Invalid username or password (org.apache.kafka.clients.NetworkClient)
+[2023-07-26 13:20:58,722] WARN [AdminClient clientId=adminclient-1] Metadata update failed due to authentication error (org.apache.kafka.clients.admin.internals.AdminMetadataManager)
+org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed: Invalid username or password
+Error while executing topic command : Authentication failed: Invalid username or password
+[2023-07-26 13:20:58,907] ERROR org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed: Invalid username or password
+Commands ran on the kfkclient host
+kafka-topics --bootstrap-server <broker>:<port> --command-config /opt/client/client.properties --list
+
+Observation
+
+The following command succeeds
+kafka-topics --bootstrap-server kafka1:19092 --command-config /opt/client/client.properties –list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+But the following commands fail
+
+kafka-topics --bootstrap-server kafka2:29092 --command-config /opt/client/client.properties –list
+kafka-topics --bootstrap-server kafka3:39092 --command-config /opt/client/client.properties --list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Root Cause Analysis
+
+The error says “Authentication failed: Invalid username or password”. That means probably the username or password mentioned in server.properties of kafka2 and kafka3 doesnot match with the client.properties of kafka client. So these files are checked for mistakes. 
+
+i) The client.properties credentials are 
+username="bob" \
+  password="bob-secret";
+
+ii) The credentials of clients in server.properties of kafka1 are
+listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+   username="admin" \
+   password="admin-secret" \
+   user_admin="admin-secret" \
+   user_bob="bob-secret" \
+   user_alice="alice-secret" \
+   user_kafkaclient1="kafkaclient1-secret";
+
+iii) The credentials of clients in server.properties of kafka2 are
+listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+   username="admin" \
+   password="admin-secret" \
+   user_admin="admin-secret" \
+   user_bob="b0b-secret" \
+   user_alice="alice-secret" \
+   user_kafkaclient1="kafkaclient1-secret";
+
+iv) The credentials of clients in server.properties of kafka3 are
+listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+   username="admin" \
+   password="admin-secret" \
+   user_admin="admin-secret" \
+   user_bob="b0b-secret" \
+   user_alice="alice-secret" \
+   user_kafkaclient1="kafkaclient1-secret";
+Note the passwords of bob in kafka2 and 3. They are written as b0b-secret instead of bob-secret because the client properties contains bob-secret
+
+Solution
+
+b0b-secret in password of bob in server.properties of kafka2 and kafka3 is changed to bob-secret
+
+Now these two commands return the list of topics without fail.
+kafka-topics --bootstrap-server kafka2:29092 --command-config /opt/client/client.properties –list
+kafka-topics --bootstrap-server kafka3:39092 --command-config /opt/client/client.properties –list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Conclusion
+
+Thus the authentication error when client tries to list the topic from kafka2 and kafka3 is resolved and topics are listed successfully.

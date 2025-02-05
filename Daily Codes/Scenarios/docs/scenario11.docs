@@ -1,0 +1,863 @@
+I was running my docker-compose which has 3 kafka brokers, control center, connect, schema registry, connect, ldap and prometheus. Few days back when i was running this docker file, I'm able to see the control center at http://localhost:9021. But now its not working. Control center is exiting, with error Caused by: javax.security.auth.login.LoginException: An internal error occurred while retrieving token from callback handler
+control-center     | 	at org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule.identifyToken(OAuthBearerLoginModule.java:319)
+control-center     | 	at org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule.login(OAuthBearerLoginModule.java:301)
+control-center     | 	at java.base/javax.security.auth.login.LoginContext.invoke(LoginContext.java:747)
+control-center     | 	at java.base/javax.security.auth.login.LoginContext$4.run(LoginContext.java:672)
+control-center     | 	at java.base/javax.security.auth.login.LoginContext$4.run(LoginContext.java:670)
+control-center     | 	at java.base/java.security.AccessController.doPrivileged(Native Method)
+control-center     | 	at ja and schema-registry isexiting with error  Caused by: javax.security.auth.login.LoginException: An internal error occurred while retrieving token from callback handler
+schema-registry    | 	at org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule.identifyToken(OAuthBearerLoginModule.java:319)
+schema-registry    | 	at org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule.login(OAuthBearerLoginModule.java:301)
+schema-registry    | 	at java.base/javax.security.auth.login.LoginContext.invoke(LoginContext.java:747)
+schema-registry    | 	at java.base/javax.security.auth.login.LoginContext$4.run(LoginContext.java:672)
+schema-registry    | 	at java.base/javax.security.auth.login.LoginContext$4.run(LoginContext.java:670)
+schema-registry    | 	at java.base/java.security.AccessController.doPrivileged(Native Method)
+schema-registry    | 	at java.base/javax.security.auth.login.LoginContext.invokePriv(LoginContext.java:670)
+schema-registry    | 	at java.base/javax.security.auth.login.LoginContext.login(LoginContext.java:581)
+schema-registry    | 	at org.apache.kafka.common.security.oauthbearer.internals.expiring.ExpiringCredentialRefreshingLogin.login(ExpiringCredentialRefreshingLogin.java:204)
+schema-registry    | 	at org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerRefreshingLogin.login(OAuthBearerRefreshingLogin.java:150)
+schema-registry    | 	at org.apache.kafka.common.security.authenticator.LoginManager.<init>(LoginManager.java:80)
+schema-registry    | 	at org.apache.kafka.common.security.authenticator.LoginManager.acquireLoginManager(LoginManager.java:123)
+schema-registry    | 	at org.apache.kafka.common.network.SaslChannelBuilder.configure(SaslChannelBuilder.java:194)
+I didnt do any changes in the code. Days before it was working and now its not working.
+
+
+For control-center 
+confluent.controlcenter.streams.security.protocol=SASL_PLAINTEXT
+confluent.controlcenter.streams.sasl.mechanism=OAUTHBEARER
+confluent.controlcenter.streams.sasl.login.callback.handler.class=io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
+confluent.controlcenter.streams.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+              username="controlcenterAdmin" \
+              password="controlcenterAdmin" \
+              metadataServerUrls="http://kafka1:8090,http://kafka2:8090,http://kafka3:8090";
+For schema-registry
+kafkastore.bootstrap.servers=kafka1:19094,kafka2:29094,kafka3:39094
+kafkastore.security.protocol=SASL_PLAINTEXT
+kafkastore.sasl.mechanism=OAUTHBEARER
+kafkastore.sasl.login.callback.handler.class=io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
+kafkastore.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+              username="schemaregistryUser" \
+              password="schemaregistryUser" \
+              metadataServerUrls="http://kafka1:8090,http://kafka2:8090,http://kafka3:8090";
+Did you forget few days back, it was working and now its not working.
+
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# This configuration file is intended for use in ZK-based mode, where Apache ZooKeeper is required.
+# See kafka.server.KafkaConfig for additional details and defaults
+#
+
+############################# Server Basics #############################
+
+# The id of the broker. This must be set to a unique integer for each broker.
+broker.id=1
+
+############################# Socket Server Settings #############################
+
+# The address the socket server listens on. If not configured, the host name will be equal to the value of
+# java.net.InetAddress.getCanonicalHostName(), with PLAINTEXT listener name, and port 9092.
+#   FORMAT:
+#     listeners = listener_name://host_name:port
+#   EXAMPLE:
+#     listeners = PLAINTEXT://your.host.name:9092
+listeners=CLIENT://:19092,BROKER://:19093,TOKEN://:19094
+
+# Listener name, hostname and port the broker will advertise to clients.
+# If not set, it uses the value for "listeners".
+advertised.listeners=CLIENT://kafka1:19092,BROKER://kafka1:19093,TOKEN://kafka1:19094
+
+# security.inter.broker.protocol=SSL
+inter.broker.listener.name=BROKER
+
+ssl.truststore.location=/etc/kafka/kafka.server.truststore.jks
+ssl.truststore.password=certificate
+ssl.keystore.location=/etc/kafka/kafka.server.keystore.jks
+ssl.keystore.password=certificate
+ssl.key.password=certificate
+ssl.client.auth=required
+
+# Maps listener names to security protocols, the default is for them to be the same. See the config documentation for more details
+listener.security.protocol.map=CLIENT:SASL_PLAINTEXT,BROKER:SSL,TOKEN:SASL_PLAINTEXT
+
+# The number of threads that the server uses for receiving requests from the network and sending responses to the network
+num.network.threads=3
+
+# The number of threads that the server uses for processing requests, which may include disk I/O
+num.io.threads=8
+
+# The send buffer (SO_SNDBUF) used by the socket server
+socket.send.buffer.bytes=102400
+
+# The receive buffer (SO_RCVBUF) used by the socket server
+socket.receive.buffer.bytes=102400
+
+# The maximum size of a request that the socket server will accept (protection against OOM)
+socket.request.max.bytes=104857600
+
+sasl.enabled.mechanisms=PLAIN,OAUTHBEARER
+
+listener.name.client.sasl.enabled.mechanisms=PLAIN
+listener.name.token.sasl.enabled.mechanisms=OAUTHBEARER
+
+listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+   username="admin" \
+   password="admin-secret" \
+   user_admin="admin-secret" \
+   user_bob="bob-secret" \
+   user_alice="alice-secret" \
+   user_kafkaclient1="kafkaclient1-secret";
+
+listener.name.token.oauthbearer.sasl.login.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
+listener.name.token.oauthbearer.sasl.server.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
+
+listener.name.token.oauthbearer.sasl.jaas.config= \
+   org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+   publicKeyPath="/etc/kafka/public.pem";
+
+# authorizer.class.name=kafka.security.authorizer.AclAuthorizer
+authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
+confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
+super.users=User:bob;User:kafka1;User:kafka2;User:kafka3;User:mds;User:schemaregistryUser;User:controlcenterAdmin;User:connectAdmin
+broker.users=User:kafka1;User:kafka2;User:kafka3
+
+############################# Identity Provider Settings (LDAP) #############################
+# Search groups for group-based authorization.
+ldap.search.mode=GROUPS
+ldap.group.name.attribute=cn
+ldap.group.object.class=posixGroup
+ldap.group.member.attribute=memberUid
+ldap.group.member.attribute.pattern=cn=(.*),ou=users,dc=confluentdemo,dc=io
+ldap.group.search.base=ou=users,dc=confluentdemo,dc=io
+#Limit the scope of searches to subtrees off of base
+# ldap.user.search.scope=2
+#Enable filters to limit search to only those groups needed
+# ldap.group.search.filter=(|(CN=<specific group>)(CN=<specific group>))
+
+# Kafka authenticates to the directory service with the bind user.
+ldap.java.naming.provider.url=ldap://openldap:389
+ldap.java.naming.security.authentication=simple
+ldap.java.naming.security.credentials=admin
+ldap.java.naming.security.principal=cn=admin,dc=confluentdemo,dc=io
+
+# Locate users. Make sure that these attributes and object classes match what is in your directory service.
+ldap.user.name.attribute=uid
+ldap.user.object.class=inetOrgPerson
+ldap.user.search.base=ou=users,dc=confluentdemo,dc=io
+
+ssl.principal.mapping.rules=RULE:^.*CN=([a-zA-Z0-9]*),.*$/$1/L,DEFAULT
+
+############################# MDS Server Settings #############################
+# Bind Metadata Service HTTP service to port 8090.
+confluent.metadata.server.listeners=http://0.0.0.0:8090
+confluent.metadata.server.advertised.listeners=http://kafka1:8090
+# The key to encrypt the token (when you issue you a token)
+confluent.metadata.server.token.key.path=/etc/kafka/tokenKeypair.pem
+# Supported authentication methods
+confluent.metadata.server.authentication.method=BEARER
+
+# confluent.metadata.topic.replication.factor=1
+# confluent.security.event.logger.exporter.kafka.topic.replicas=1
+# confluent.telemetry.enabled=false
+# offsets.topic.replication.factor=1
+# transaction.state.log.replication.factor=1
+# confluent.license.topic.replication.factor=1
+# confluent.metadata.topic.replication.factor=1
+# confluent.balancer.topic.replication.factor=1
+
+############################# Log Basics #############################
+
+# A comma separated list of directories under which to store log files
+log.dirs=/var/lib/kafka/data
+
+# The default number of log partitions per topic. More partitions allow greater
+# parallelism for consumption, but this will also result in more files across
+# the brokers.
+num.partitions=1
+
+# The number of threads per data directory to be used for log recovery at startup and flushing at shutdown.
+# This value is recommended to be increased for installations with data dirs located in RAID array.
+num.recovery.threads.per.data.dir=1
+
+############################# Internal Topic Settings  #############################
+# The replication factor for the group metadata internal topics "__consumer_offsets" and "__transaction_state"
+# For anything other than development testing, a value greater than 1 is recommended to ensure availability such as 3.
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+
+############################# Log Flush Policy #############################
+
+# Messages are immediately written to the filesystem but by default we only fsync() to sync
+# the OS cache lazily. The following configurations control the flush of data to disk.
+# There are a few important trade-offs here:
+#    1. Durability: Unflushed data may be lost if you are not using replication.
+#    2. Latency: Very large flush intervals may lead to latency spikes when the flush does occur as there will be a lot of data to flush.
+#    3. Throughput: The flush is generally the most expensive operation, and a small flush interval may lead to excessive seeks.
+# The settings below allow one to configure the flush policy to flush data after a period of time or
+# every N messages (or both). This can be done globally and overridden on a per-topic basis.
+
+# The number of messages to accept before forcing a flush of data to disk
+#log.flush.interval.messages=10000
+
+# The maximum amount of time a message can sit in a log before we force a flush
+#log.flush.interval.ms=1000
+
+############################# Log Retention Policy #############################
+
+# The following configurations control the disposal of log segments. The policy can
+# be set to delete segments after a period of time, or after a given size has accumulated.
+# A segment will be deleted whenever *either* of these criteria are met. Deletion always happens
+# from the end of the log.
+
+# The minimum age of a log file to be eligible for deletion due to age
+log.retention.hours=168
+
+# A size-based retention policy for logs. Segments are pruned from the log unless the remaining
+# segments drop below log.retention.bytes. Functions independently of log.retention.hours.
+#log.retention.bytes=1073741824
+
+# The maximum size of a log segment file. When this size is reached a new log segment will be created.
+#log.segment.bytes=1073741824
+
+# The interval at which log segments are checked to see if they can be deleted according
+# to the retention policies
+log.retention.check.interval.ms=300000
+
+############################# Zookeeper #############################
+
+# Zookeeper connection string (see zookeeper docs for details).
+# This is a comma separated host:port pairs, each corresponding to a zk
+# server. e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002".
+# You can also append an optional chroot string to the urls to specify the
+# root directory for all kafka znodes.
+zookeeper.connect=zookeeper1:2181
+#,zookeeper2:2182,zookeeper3:2183
+
+# Timeout in ms for connecting to zookeeper
+zookeeper.connection.timeout.ms=18000
+
+##################### Confluent Metrics Reporter #######################
+# Confluent Control Center and Confluent Auto Data Balancer integration
+#
+# Uncomment the following lines to publish monitoring data for
+# Confluent Control Center and Confluent Auto Data Balancer
+# If you are using a dedicated metrics cluster, also adjust the settings
+# to point to your metrics kakfa cluster.
+metric.reporters=io.confluent.metrics.reporter.ConfluentMetricsReporter
+confluent.metrics.reporter.bootstrap.servers=kafka1:19093,kafka2:29093,kafka3:39093
+confluent.metrics.reporter.security.protocol=SSL
+confluent.metrics.reporter.ssl.truststore.location=/etc/kafka/kafka.server.truststore.jks
+confluent.metrics.reporter.ssl.truststore.password=certificate
+confluent.metrics.reporter.ssl.keystore.location=/etc/kafka/kafka.server.keystore.jks
+confluent.metrics.reporter.ssl.keystore.password=certificate
+
+#
+# Uncomment the following line if the metrics cluster has a single broker
+# confluent.metrics.reporter.topic.replicas=1
+
+############################# Group Coordinator Settings #############################
+
+# The following configuration specifies the time, in milliseconds, that the GroupCoordinator will delay the initial consumer rebalance.
+# The rebalance will be further delayed by the value of group.initial.rebalance.delay.ms as new members join the group, up to a maximum of max.poll.interval.ms.
+# The default value for this is 3 seconds.
+# We override this to 0 here as it makes for a better out-of-the-box experience for development and testing.
+# However, in production environments the default value of 3 seconds is more suitable as this will help to avoid unnecessary, and potentially expensive, rebalances during application startup.
+group.initial.rebalance.delay.ms=0
+See, here I'm not using any token generator like keycloak and all. See the server.properties which I provided and give me the solution to check whether the tokens have been expired
+
+
+These are the errors in kafka1
+kafka1             | [2024-11-21 06:38:14,302] INFO SASL config status: Will not attempt to authenticate using SASL (unknown error) (org.apache.zookeeper.ClientCnxn)
+kafka1             | 	confluent.telemetry.metrics.collector.include = .*io.confluent.telemetry/.*.*|.*io.confluent.system/.*(process_cpu_load|max_file_descriptor_count|open_file_descriptor_count|system_cpu_load|system_load_average|free_physical_memory_size|total_physical_memory_size|disk_total_bytes|disk_usable_bytes|jvm/mem|jvm/gc).*|.*io.confluent.kafka.rest/.*(connections_active|connections_closed_rate|request_error_rate|request_latency_avg|request_latency_max|request_rate|response_size_avg|response_size_max).*
+kafka1             | [2024-11-21 06:38:29,005] ERROR [KafkaApi-1] Unexpected error handling request RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=_confluent-controlcenter-7-4-0-1-command-68556136-aa0b-42a5-87bc-9ced1ad2a94a-StreamThread-1-producer, correlationId=3, headerVersion=2) -- InitProducerIdRequestData(transactionalId=null, transactionTimeoutMs=2147483647, producerId=-1, producerEpoch=-1) with context RequestContext(header=RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=_confluent-controlcenter-7-4-0-1-command-68556136-aa0b-42a5-87bc-9ced1ad2a94a-StreamThread-1-producer, correlationId=3, headerVersion=2), connectionId='172.20.0.8:19094-172.20.0.12:59368-1', clientAddress=/172.20.0.12, principal=User:controlcenterAdmin, listenerName=ListenerName(TOKEN), securityProtocol=SASL_PLAINTEXT, clientInformation=ClientInformation(softwareName=apache-kafka-java, softwareVersion=7.4.0-ce), fromPrivilegedListener=false, principalSerde=Optional[org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder@160e9d0f]) (kafka.server.KafkaApis)
+kafka1             | org.apache.kafka.common.errors.CoordinatorLoadInProgressException: Timed out waiting for next producer ID block
+But in kafka2 and 3, there are additional errors
+kafka2             | [2024-11-21 06:38:17,039] WARN [ReplicaFetcher replicaId=2, leaderId=1, fetcherId=0] Received UNKNOWN_TOPIC_ID from the leader for partition _confluent-metadata-auth-1. This error may be returned transiently when the partition is being created or deleted, but it is not expected to persist. (kafka.server.ReplicaFetcherThread)
+kafka2             | [2024-11-21 06:38:17,040] WARN [ReplicaFetcher replicaId=2, leaderId=1, fetcherId=0] Received UNKNOWN_TOPIC_ID from the leader for partition _confluent-metadata-auth-4. This error may be returned transiently when the partition is being created or deleted, but it is not expected to persist. (kafka.server.ReplicaFetcherThread)
+kafka2             | [2024-11-21 06:38:17,307] WARN [Producer clientId=_confluent-metadata-auth-producer-2] Received unknown topic or partition error in produce request on partition _confluent-metadata-auth-1. The topic-partition may not exist or the user may not have Describe access to it (org.apache.kafka.clients.producer.internals.Sender)
+kafka2             | [2024-11-21 06:38:17,308] WARN [Producer clientId=_confluent-metadata-auth-producer-2] Received unknown topic or partition error in produce request on partition _confluent-metadata-auth-4. The topic-partition may not exist or the user may not have Describe access to it (org.apache.kafka.clients.producer.internals.Sender)
+kafka2             | 	confluent.telemetry.metrics.collector.include = .*io.confluent.telemetry/.*.*|.*io.confluent.system/.*(process_cpu_load|max_file_descriptor_count|open_file_descriptor_count|system_cpu_load|system_load_average|free_physical_memory_size|total_physical_memory_size|disk_total_bytes|disk_usable_bytes|jvm/mem|jvm/gc).*|.*io.confluent.kafka.rest/.*(connections_active|connections_closed_rate|request_error_rate|request_latency_avg|request_latency_max|request_rate|response_size_avg|response_size_max).*
+kafka2             | [2024-11-21 06:38:29,137] ERROR [KafkaApi-2] Unexpected error handling request RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=c3-command, correlationId=2, headerVersion=2) -- InitProducerIdRequestData(transactionalId=null, transactionTimeoutMs=2147483647, producerId=-1, producerEpoch=-1) with context RequestContext(header=RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=c3-command, correlationId=2, headerVersion=2), connectionId='172.20.0.6:29094-172.20.0.12:55102-2', clientAddress=/172.20.0.12, principal=User:controlcenterAdmin, listenerName=ListenerName(TOKEN), securityProtocol=SASL_PLAINTEXT, clientInformation=ClientInformation(softwareName=apache-kafka-java, softwareVersion=7.4.0-ce), fromPrivilegedListener=false, principalSerde=Optional[org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder@1ac303fb]) (kafka.server.KafkaApis)
+kafka2             | org.apache.kafka.common.errors.CoordinatorLoadInProgressException: Timed out waiting for next producer ID block
+kafka3             | [2024-11-21 06:38:17,007] WARN [ReplicaFetcher replicaId=3, leaderId=1, fetcherId=0] Received UNKNOWN_TOPIC_ID from the leader for partition _confluent-metadata-auth-1. This error may be returned transiently when the partition is being created or deleted, but it is not expected to persist. (kafka.server.ReplicaFetcherThread)
+kafka3             | [2024-11-21 06:38:17,013] WARN [ReplicaFetcher replicaId=3, leaderId=1, fetcherId=0] Received UNKNOWN_TOPIC_ID from the leader for partition _confluent-metadata-auth-4. This error may be returned transiently when the partition is being created or deleted, but it is not expected to persist. (kafka.server.ReplicaFetcherThread)
+kafka3             | [2024-11-21 06:38:17,321] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic ID error in fetch for partition _confluent-metadata-auth-1 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,322] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic ID error in fetch for partition _confluent-metadata-auth-4 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,342] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic ID error in fetch for partition _confluent-metadata-auth-1 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,342] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic ID error in fetch for partition _confluent-metadata-auth-4 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,383] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-1 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,384] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-4 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,393] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-1 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,394] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-4 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,414] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-1 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | [2024-11-21 06:38:17,416] WARN [Consumer clientId=_confluent-metadata-auth-consumer-3, groupId=null] Received unknown topic or partition error in fetch for partition _confluent-metadata-auth-4 (org.apache.kafka.clients.consumer.internals.Fetcher)
+kafka3             | 	confluent.telemetry.metrics.collector.include = .*io.confluent.telemetry/.*.*|.*io.confluent.system/.*(process_cpu_load|max_file_descriptor_count|open_file_descriptor_count|system_cpu_load|system_load_average|free_physical_memory_size|total_physical_memory_size|disk_total_bytes|disk_usable_bytes|jvm/mem|jvm/gc).*|.*io.confluent.kafka.rest/.*(connections_active|connections_closed_rate|request_error_rate|request_latency_avg|request_latency_max|request_rate|response_size_avg|response_size_max).*
+kafka3             | [2024-11-21 06:38:26,017] ERROR [KafkaApi-3] Unexpected error handling request RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=confluent-control-center-heartbeat-sender-1, correlationId=3, headerVersion=2) -- InitProducerIdRequestData(transactionalId=null, transactionTimeoutMs=2147483647, producerId=-1, producerEpoch=-1) with context RequestContext(header=RequestHeader(apiKey=INIT_PRODUCER_ID, apiVersion=4, clientId=confluent-control-center-heartbeat-sender-1, correlationId=3, headerVersion=2), connectionId='172.20.0.7:39094-172.20.0.12:46972-0', clientAddress=/172.20.0.12, principal=User:controlcenterAdmin, listenerName=ListenerName(TOKEN), securityProtocol=SASL_PLAINTEXT, clientInformation=ClientInformation(softwareName=apache-kafka-java, softwareVersion=7.4.0-ce), fromPrivilegedListener=false, principalSerde=Optional[org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder@49efa56c]) (kafka.server.KafkaApis)
+kafka3             | org.apache.kafka.common.errors.CoordinatorLoadInProgressException: Timed out waiting for next producer ID block
+
+I thought kafka1 has more errors because it is the one where listing topics is not coming. Canyou find the solution of why kafka1 is not coming
+
+---
+version: '3.7'
+services:
+  zookeeper1:
+    image: confluentinc/cp-zookeeper:7.4.0
+    hostname: zookeeper1
+    container_name: zookeeper1
+    ports:
+      - "2181:2181"
+    command: zookeeper-server-start /etc/kafka/zookeeper.properties
+    environment:
+      EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9103:/usr/share/jmx-exporter/zookeeper.yml
+    volumes:
+    - ./zookeeper1:/etc/kafka
+    - ./jmx-exporter:/usr/share/jmx-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+  # zookeeper2:
+    # image: confluentinc/cp-zookeeper:7.4.0
+    # hostname: zookeeper2
+    # container_name: zookeeper2
+    # ports:
+    #   - "2182:2182"
+    # command: zookeeper-server-start /etc/kafka/zookeeper.properties
+    # environment:
+    #   EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9103:/usr/share/jmx-exporter/zookeeper.yml
+    # volumes:
+    # - ./zookeeper2:/etc/kafka
+    # - ./jmx-exporter:/usr/share/jmx-exporter
+
+  # zookeeper3:
+    # image: confluentinc/cp-zookeeper:7.4.0
+    # hostname: zookeeper3
+    # container_name: zookeeper3
+    # ports:
+    #   - "2183:2183"
+    # command: zookeeper-server-start /etc/kafka/zookeeper.properties
+    # environment:
+    #   EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9103:/usr/share/jmx-exporter/zookeeper.yml
+    # volumes:
+    # - ./zookeeper3:/etc/kafka
+    # - ./jmx-exporter:/usr/share/jmx-exporter
+
+  kafka1:
+    image: confluentinc/cp-server:7.4.0
+    hostname: kafka1
+    container_name: kafka1
+    user: root
+    entrypoint: /opt/scripts/kafka1.sh
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - zookeeper1
+      # - zookeeper2
+      # - zookeeper3
+    command: kafka-server-start /etc/kafka/server.properties
+    environment:
+      EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9101:/usr/share/jmx-exporter/kafka_broker.yml
+    volumes:
+    - ./kafka1:/etc/kafka
+    - ./jmx-exporter:/usr/share/jmx-exporter
+    - ./scripts/kafka1.sh:/opt/scripts/kafka1.sh
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+
+  kafka2:
+    image: confluentinc/cp-server:7.4.0
+    hostname: kafka2
+    container_name: kafka2
+    depends_on:
+      - zookeeper1
+      # - zookeeper2
+      # - zookeeper3
+    command: kafka-server-start /etc/kafka/server.properties
+    environment:
+      EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9102:/usr/share/jmx-exporter/kafka_broker.yml
+    volumes:
+    - ./kafka2:/etc/kafka
+    - ./jmx-exporter:/usr/share/jmx-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+  
+  kafka3:
+    image: confluentinc/cp-server:7.4.0
+    hostname: kafka3
+    container_name: kafka3
+    depends_on:
+      - zookeeper1
+      # - zookeeper2
+      # - zookeeper3
+    command: kafka-server-start /etc/kafka/server.properties
+    environment:
+      EXTRA_ARGS: -javaagent:/usr/share/jmx-exporter/jmx_prometheus_javaagent-0.18.0.jar=9103:/usr/share/jmx-exporter/kafka_broker.yml
+    volumes:
+    - ./kafka3:/etc/kafka
+    - ./jmx-exporter:/usr/share/jmx-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    command: schema-registry-start /etc/schema-registry/schema-registry.properties
+    ports:
+      - "8081:8081"
+    volumes:
+    - ./schema-registry:/etc/schema-registry
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+  connect:
+    image: confluentinc/cp-server-connect:7.4.0
+    hostname: connect
+    container_name: connect
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - schema-registry
+    command: connect-distributed /etc/kafka/connect-distributed.properties
+    ports:
+      - "8083:8083"
+    volumes:
+    - ./connect:/etc/kafka
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:7.4.0
+    hostname: control-center
+    container_name: control-center
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - schema-registry
+      - connect
+    ports:
+      - "9021:9021"
+    command: control-center-start /etc/confluent-control-center/control-center-production.properties
+    environment:
+      PORT: 9021
+    volumes:
+    - ./confluent-control-center:/etc/confluent-control-center
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  kfkclient:
+    build: ./client
+    hostname: kfkclient
+    container_name: kfkclient
+    entrypoint: /opt/client/kafkaClient.sh /opt/client/start.sh
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    volumes:
+    - ./client:/opt/client
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 256M
+
+  openldap:
+    image: osixia/openldap:1.3.0
+    hostname: openldap
+    container_name: openldap
+    environment:
+        LDAP_ORGANISATION: "ConfluentDemo"
+        LDAP_DOMAIN: "confluentdemo.io"
+        LDAP_BASE_DN: "dc=confluentdemo,dc=io"
+    ports:
+      - "389:389"
+    volumes:
+        - ./ldap/ldap_users:/container/service/slapd/assets/config/bootstrap/ldif/custom
+    command: "--copy-service --loglevel debug"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:v2.37.7
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    ports:
+    - 9090:9090
+    expose:
+    - 9090
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+
+  grafana:
+    image: grafana/grafana:8.5.24
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+    - 3000:3000
+    expose:
+      - 3000
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+ This is my docker file. Yesterday when I wasdoin gthe same connect, control-center and schema-registry exited because of some error. That time when I listed topics from all the three brokers, it worked. Mainly kafka1 worked. today when i was running, control-center, connect, schema-registry are working fine but this kafka1 listing not able to do.
+
+ Also I see another difference in the configuration kafka1 which is different from kafka2 and kafka3 that is entrypoint with a script file . These are the contents of that script ffile #!/bin/bash
+
+yum install iptables -y
+
+iptables -A INPUT -p tcp --dport 19092 -j DROP
+
+su - appuser
+
+$@ Is this the cause of this issue
+
+kafka-topics --bootstrap-server kafka1:19092 --list --command-config /opt/client/client.properties
+Error while executing topic command : Timed out waiting for a node assignment. Call: listTopics
+[2024-11-21 09:09:25,507] ERROR org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: listTopics
+ (kafka.admin.TopicCommand$)
+
+My supervisor said that the port should be blocked only and should not do any changes in the script file. But somehow client should access this port. Hint: we should do some changes in the server.properties
+
+
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# This configuration file is intended for use in ZK-based mode, where Apache ZooKeeper is required.
+# See kafka.server.KafkaConfig for additional details and defaults
+#
+
+############################# Server Basics #############################
+
+# The id of the broker. This must be set to a unique integer for each broker.
+broker.id=1
+
+############################# Socket Server Settings #############################
+
+# The address the socket server listens on. If not configured, the host name will be equal to the value of
+# java.net.InetAddress.getCanonicalHostName(), with PLAINTEXT listener name, and port 9092.
+#   FORMAT:
+#     listeners = listener_name://host_name:port
+#   EXAMPLE:
+#     listeners = PLAINTEXT://your.host.name:9092
+listeners=CLIENT://:19092,BROKER://:19093,TOKEN://:19094
+
+# Listener name, hostname and port the broker will advertise to clients.
+# If not set, it uses the value for "listeners".
+advertised.listeners=CLIENT://kafka1:19092,BROKER://kafka1:19093,TOKEN://kafka1:19094
+
+# security.inter.broker.protocol=SSL
+inter.broker.listener.name=BROKER
+
+ssl.truststore.location=/etc/kafka/kafka.server.truststore.jks
+ssl.truststore.password=certificate
+ssl.keystore.location=/etc/kafka/kafka.server.keystore.jks
+ssl.keystore.password=certificate
+ssl.key.password=certificate
+ssl.client.auth=required
+
+# Maps listener names to security protocols, the default is for them to be the same. See the config documentation for more details
+listener.security.protocol.map=CLIENT:SASL_PLAINTEXT,BROKER:SSL,TOKEN:SASL_PLAINTEXT
+
+# The number of threads that the server uses for receiving requests from the network and sending responses to the network
+num.network.threads=3
+
+# The number of threads that the server uses for processing requests, which may include disk I/O
+num.io.threads=8
+
+# The send buffer (SO_SNDBUF) used by the socket server
+socket.send.buffer.bytes=102400
+
+# The receive buffer (SO_RCVBUF) used by the socket server
+socket.receive.buffer.bytes=102400
+
+# The maximum size of a request that the socket server will accept (protection against OOM)
+socket.request.max.bytes=104857600
+
+sasl.enabled.mechanisms=PLAIN,OAUTHBEARER
+
+listener.name.client.sasl.enabled.mechanisms=PLAIN
+listener.name.token.sasl.enabled.mechanisms=OAUTHBEARER
+
+listener.name.client.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+   username="admin" \
+   password="admin-secret" \
+   user_admin="admin-secret" \
+   user_bob="bob-secret" \
+   user_alice="alice-secret" \
+   user_kafkaclient1="kafkaclient1-secret";
+
+listener.name.token.oauthbearer.sasl.login.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
+listener.name.token.oauthbearer.sasl.server.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
+
+listener.name.token.oauthbearer.sasl.jaas.config= \
+   org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+   publicKeyPath="/etc/kafka/public.pem";
+
+# authorizer.class.name=kafka.security.authorizer.AclAuthorizer
+authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
+confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
+super.users=User:bob;User:kafka1;User:kafka2;User:kafka3;User:mds;User:schemaregistryUser;User:controlcenterAdmin;User:connectAdmin
+broker.users=User:kafka1;User:kafka2;User:kafka3
+
+############################# Identity Provider Settings (LDAP) #############################
+# Search groups for group-based authorization.
+ldap.search.mode=GROUPS
+ldap.group.name.attribute=cn
+ldap.group.object.class=posixGroup
+ldap.group.member.attribute=memberUid
+ldap.group.member.attribute.pattern=cn=(.*),ou=users,dc=confluentdemo,dc=io
+ldap.group.search.base=ou=users,dc=confluentdemo,dc=io
+#Limit the scope of searches to subtrees off of base
+# ldap.user.search.scope=2
+#Enable filters to limit search to only those groups needed
+# ldap.group.search.filter=(|(CN=<specific group>)(CN=<specific group>))
+
+# Kafka authenticates to the directory service with the bind user.
+ldap.java.naming.provider.url=ldap://openldap:389
+ldap.java.naming.security.authentication=simple
+ldap.java.naming.security.credentials=admin
+ldap.java.naming.security.principal=cn=admin,dc=confluentdemo,dc=io
+
+# Locate users. Make sure that these attributes and object classes match what is in your directory service.
+ldap.user.name.attribute=uid
+ldap.user.object.class=inetOrgPerson
+ldap.user.search.base=ou=users,dc=confluentdemo,dc=io
+
+ssl.principal.mapping.rules=RULE:^.*CN=([a-zA-Z0-9]*),.*$/$1/L,DEFAULT
+
+############################# MDS Server Settings #############################
+# Bind Metadata Service HTTP service to port 8090.
+confluent.metadata.server.listeners=http://0.0.0.0:8090
+confluent.metadata.server.advertised.listeners=http://kafka1:8090
+# The key to encrypt the token (when you issue you a token)
+confluent.metadata.server.token.key.path=/etc/kafka/tokenKeypair.pem
+# Supported authentication methods
+confluent.metadata.server.authentication.method=BEARER
+
+# confluent.metadata.topic.replication.factor=1
+# confluent.security.event.logger.exporter.kafka.topic.replicas=1
+# confluent.telemetry.enabled=false
+# offsets.topic.replication.factor=1
+# transaction.state.log.replication.factor=1
+# confluent.license.topic.replication.factor=1
+# confluent.metadata.topic.replication.factor=1
+# confluent.balancer.topic.replication.factor=1
+
+############################# Log Basics #############################
+
+# A comma separated list of directories under which to store log files
+log.dirs=/var/lib/kafka/data
+
+# The default number of log partitions per topic. More partitions allow greater
+# parallelism for consumption, but this will also result in more files across
+# the brokers.
+num.partitions=1
+
+# The number of threads per data directory to be used for log recovery at startup and flushing at shutdown.
+# This value is recommended to be increased for installations with data dirs located in RAID array.
+num.recovery.threads.per.data.dir=1
+
+############################# Internal Topic Settings  #############################
+# The replication factor for the group metadata internal topics "__consumer_offsets" and "__transaction_state"
+# For anything other than development testing, a value greater than 1 is recommended to ensure availability such as 3.
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+
+############################# Log Flush Policy #############################
+
+# Messages are immediately written to the filesystem but by default we only fsync() to sync
+# the OS cache lazily. The following configurations control the flush of data to disk.
+# There are a few important trade-offs here:
+#    1. Durability: Unflushed data may be lost if you are not using replication.
+#    2. Latency: Very large flush intervals may lead to latency spikes when the flush does occur as there will be a lot of data to flush.
+#    3. Throughput: The flush is generally the most expensive operation, and a small flush interval may lead to excessive seeks.
+# The settings below allow one to configure the flush policy to flush data after a period of time or
+# every N messages (or both). This can be done globally and overridden on a per-topic basis.
+
+# The number of messages to accept before forcing a flush of data to disk
+#log.flush.interval.messages=10000
+
+# The maximum amount of time a message can sit in a log before we force a flush
+#log.flush.interval.ms=1000
+
+############################# Log Retention Policy #############################
+
+# The following configurations control the disposal of log segments. The policy can
+# be set to delete segments after a period of time, or after a given size has accumulated.
+# A segment will be deleted whenever *either* of these criteria are met. Deletion always happens
+# from the end of the log.
+
+# The minimum age of a log file to be eligible for deletion due to age
+log.retention.hours=168
+
+# A size-based retention policy for logs. Segments are pruned from the log unless the remaining
+# segments drop below log.retention.bytes. Functions independently of log.retention.hours.
+#log.retention.bytes=1073741824
+
+# The maximum size of a log segment file. When this size is reached a new log segment will be created.
+#log.segment.bytes=1073741824
+
+# The interval at which log segments are checked to see if they can be deleted according
+# to the retention policies
+log.retention.check.interval.ms=300000
+
+############################# Zookeeper #############################
+
+# Zookeeper connection string (see zookeeper docs for details).
+# This is a comma separated host:port pairs, each corresponding to a zk
+# server. e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002".
+# You can also append an optional chroot string to the urls to specify the
+# root directory for all kafka znodes.
+zookeeper.connect=zookeeper1:2181
+#,zookeeper2:2182,zookeeper3:2183
+
+# Timeout in ms for connecting to zookeeper
+zookeeper.connection.timeout.ms=18000
+
+##################### Confluent Metrics Reporter #######################
+# Confluent Control Center and Confluent Auto Data Balancer integration
+#
+# Uncomment the following lines to publish monitoring data for
+# Confluent Control Center and Confluent Auto Data Balancer
+# If you are using a dedicated metrics cluster, also adjust the settings
+# to point to your metrics kakfa cluster.
+metric.reporters=io.confluent.metrics.reporter.ConfluentMetricsReporter
+confluent.metrics.reporter.bootstrap.servers=kafka1:19093,kafka2:29093,kafka3:39093
+confluent.metrics.reporter.security.protocol=SSL
+confluent.metrics.reporter.ssl.truststore.location=/etc/kafka/kafka.server.truststore.jks
+confluent.metrics.reporter.ssl.truststore.password=certificate
+confluent.metrics.reporter.ssl.keystore.location=/etc/kafka/kafka.server.keystore.jks
+confluent.metrics.reporter.ssl.keystore.password=certificate
+
+#
+# Uncomment the following line if the metrics cluster has a single broker
+# confluent.metrics.reporter.topic.replicas=1
+
+############################# Group Coordinator Settings #############################
+
+# The following configuration specifies the time, in milliseconds, that the GroupCoordinator will delay the initial consumer rebalance.
+# The rebalance will be further delayed by the value of group.initial.rebalance.delay.ms as new members join the group, up to a maximum of max.poll.interval.ms.
+# The default value for this is 3 seconds.
+# We override this to 0 here as it makes for a better out-of-the-box experience for development and testing.
+# However, in production environments the default value of 3 seconds is more suitable as this will help to avoid unnecessary, and potentially expensive, rebalances during application startup.
+group.initial.rebalance.delay.ms=0
+
+This is the server.properties of kafka1, sasl.mechanism=PLAIN
+
+security.protocol=SASL_PLAINTEXT
+
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+  username="bob" \
+  password="bob-secret"; THis is the configuration of the client who is accessing the port 19092. iS ANYOTHER CONFIGURATION IN THIS FILES SHOULD BE CHANGED OR ADDED TO RESOLVE THIS PROBLEM WITHOUT CHANGING ANYTHING IN SCRIPT
+
+See the port will remain blocked. so what change should i do in server.properties to do any activities eventhough the port is blocked. I already told no change in script at all
+
+
+kafka-topics --bootstrap-server kafka1:19096 --list --command-config /opt/client/client.properties
+__consumer_offsets
+_confluent-command
+_confluent-metadata-auth
+_confluent-metrics
+_confluent-telemetry-metrics
+confluent-audit-log-events
+connect-configs
+connect-offsets
+connect-status
+kfkclient:~# kafka-topics --bootstrap-server kafka1:19092 --list --command-config /opt/client/client.properties
+Error while executing topic command : Timed out waiting for a node assignment. Call: listTopics
+[2024-11-21 11:10:41,659] ERROR org.apache.kafka.common.errors.TimeoutException: Timed out waiting for a node assignment. Call: listTopics
+ (kafka.admin.TopicCommand$)
+kfkclient:~# kafka-topics --bootstrap-server kafka1:19097 --list --command-config /opt/client/client.properties
+[2024-11-21 11:10:53,686] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (kafka1/172.20.0.7:19097) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+[2024-11-21 11:10:53,791] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (kafka1/172.20.0.7:19097) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+[2024-11-21 11:10:53,993] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (kafka1/172.20.0.7:19097) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+[2024-11-21 11:10:54,295] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (kafka1/172.20.0.7:19097) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+[2024-11-21 11:10:54,698] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (kafk
+
+

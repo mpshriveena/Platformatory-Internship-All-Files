@@ -1,0 +1,70 @@
+Kubernetes Commands done in January
+
+====================================Docker Login================================================
+sudo apt update
+sudo apt install pass gnupg
+gpg --gen-key
+pass init 8F6293BB452F6A4DB275C7D7BD796D1011E5F90F
+docker login
+================================================================================================
+
+=====================================First App==================================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/january_tasks/kubernetes_cluster
+minikube start --driver=dockerminikube status
+docker build -t kub-first-app .
+docker tag kub-first-app mpshriveena/kub-first-app
+docker push mpshriveena/kub-first-app
+kubectl create deployment first-app --image=kub-first-app
+kubectl expose deployment first-app --type=LoadBalancer --port=8080
+minikube service first-app
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl delete deployment first-app
+kubectl delete service first-app
+================================================================================================
+
+=================================NGINX Container===============================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/january_tasks/simple_nginx_container
+kubectl apply -f nginx-deployment.yaml
+kubectl get pods
+kubectl get deployments
+kubectl get services
+minikube service nginx-service
+================================================================================================
+
+==============================Flask Nginx Container=============================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/january_tasks/flask_nginx_kubernetes_applicationdocker-compose build
+cd ./app
+docker build -t mpshriveena/flask1:latest .
+docker push mpshriveena/flask1
+cd ../nginx
+docker build -t mpshriveena/nginx1:latest .
+docker push mpshriveena/nginx1
+cd ..
+kubectl apply -f flask-nginx-deployment.yaml
+minikube service flask-nginx-service
+kubectl delete deployments --all
+kubectl delete services --all
+kubectl logs flask-nginx-deployment-f8b765578-czwnw
+kubectl get pods
+kubectl get deployments
+kubectl get services
+minikube service flask-app
+================================================================================================
+
+=============================Confluent Platform=================================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/january_tasks/confluent_platform_kubernetes
+kind create cluster
+kubectl cluster-info --context kind-kind
+kubectl create namespace confluent
+kubectl config set-context --current --namespace=confluent
+helm repo add confluentinc https://packages.confluent.io/helm
+helm repo update
+helm upgrade --install confluent-operator \
+  confluentinc/confluent-for-kubernetes \
+  --namespace confluent
+kubectl get pods
+kubectl apply -f confluent-platform.yaml
+kubectl delete namespace confluent
+================================================================================================

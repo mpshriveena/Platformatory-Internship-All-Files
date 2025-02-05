@@ -1,0 +1,8 @@
+confluent.metadata.topic.replication.factor=5
+
+Import ca-cert to truststore
+Change confluent.metadata.topic.replication.factor to 3
+
+openssl x509 -in ca-cert.pem -text -noout
+keytool -list -v -keystore kafka.server.keystore.jks
+keytool -list -v -keystore kafka.server.truststore.jks

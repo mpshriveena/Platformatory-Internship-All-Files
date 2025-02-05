@@ -1,0 +1,756 @@
+========================================== Main ================================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/main/cp-ansible-sandbox
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+SSH into any kafka container from ansible control node to check the list of topics
+ssh root@kafka1
+
+To list the topics
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka2:9092 --list
+kafka-topics --bootstrap-server kafka3:9092 --list
+
+kafka-topics --bootstrap-server kafka1:9092 --topic first-topic --create
+kafka-console-producer --bootstrap-server kafka1:9092 --topic first-topic
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic first-topic --from-beginning
+
+========================================== TLS SSL ================================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/tls-ssl/cp-ansible-sandbox
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+
+To enable TLS encryption for all components, add the following in the inventory/ancible-inventory.yml file.
+
+all:
+  vars:
+    ssl_enabled: true
+    zookeeper_ssl_enabled: false
+    kafka_controller_ssl_enabled: false
+    kafka_connect_ssl_enabled: false
+    kafka_rest_ssl_enabled: false
+    schema_registry_ssl_enabled: false
+    control_center_ssl_enabled: false
+    ksql_ssl_enabled: false
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.keystore.jks"
+    ssl_keystore_key_password: certificate
+    ssl_keystore_store_password: certificate
+    ssl_truststore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.truststore.jks"
+    ssl_truststore_password: certificate
+
+/ansible/ansible_collections/confluent/platform/certs
+
+Generate Client-1 Keystore and Truststore
+keytool -keystore client-1.keystore.jks -alias kafka1 -validity 365 -genkey -keyalg RSA -dname "CN=kafka1, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore client-1.keystore.jks -alias kafka1 -certreq -file client-1-cert-file
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in client-1-cert-file -out client-1-cert-signed.pem -days 365 -CAcreateserial
+keytool -keystore client-1.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore client-1.keystore.jks -alias kafka1 -import -file client-1-cert-signed.pem
+openssl verify -CAfile ca-cert.pem client-1-cert-signed.pem
+#client-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore client-1.truststore.jks
+
+export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
+
+Now successfully
+kafka-topics --bootstrap-server kafka1:9092 --list
+this won't work
+
+But
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+this works
+
+========================================== SASL PLAIN ================================================
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/sasl-plaintext/cp-ansible-sandbox
+
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+
+
+all:
+  vars:
+    sasl_protocol: plain
+    sasl_plain_users:
+      admin:
+        principal: 'admin'
+        password: 'admin-secret'
+      schema_registry:
+        principal: 'schema_registry'
+        password: 'schema_registry-secret'
+      kafka_connect:
+        principal: 'kafka_connect'
+        password: 'kafka_connect-secret'
+      ksql:
+        principal: 'ksql'
+        password: 'ksql-secret'
+      kafka_rest:
+        principal: 'kafka_rest'
+        password: 'kafka_rest-secret'
+      control_center:
+        principal: 'control_center'
+        password: 'control_center-secret'
+      kafka_connect_replicator:
+        principal: 'kafka_connect_replicator'
+        password: 'kafka_connect_replicator-secret'
+      client:
+        principal: 'client'
+        password: 'client-secret'
+      platformatory:
+        principal: 'platformatory'
+        password: platformatory
+      user1:
+        principal: 'user1'
+        password: user1-secret
+      user2:
+        principal: 'user2'
+        password: user2-secret
+      user3:
+        principal: 'user3'
+        password: user2-secret
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+kafka-topics --bootstrap-server kafka1:9092 --topic acl-test --create --command-config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+Write some data to the topic. This should work since the topic has no ACLs and allow.everyone.if.no.acl.found is set
+to true .
+Add an ACL to allow otheruser to write to the topic.
+Attempt to write to the topic again. This time it should fail, since the topic has an ACL but not one that allows kafkauser
+to write to it.
+
+kafka-acls --authorizer-properties zookeeper.connect=zookeeper1:2181 --add --allow-principal User:user1 --operation all --topic acl-test
+kafka-console-producer --bootstrap-server kafka1:9092 --topic acl-test --producer.config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+Create an ACL allowing Platformatory to write to the acl-test topic.
+Attempt to write to the topic once more. This time it should succeed.
+
+kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:Platformatory --operation all --topic acl-test
+
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic acl-test --from-beginning --consumer.config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+========================================== SASL-SSL ================================================
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/sasl-ssl/cp-ansible-sandbox
+
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+To enable SASL-SSL, add the following in the inventory/ancible-inventory.yml file.
+
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_become: true
+    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    ssl_enabled: true
+    zookeeper_ssl_enabled: false
+    kafka_controller_ssl_enabled: false
+    kafka_connect_ssl_enabled: false
+    kafka_rest_ssl_enabled: false
+    schema_registry_ssl_enabled: false
+    control_center_ssl_enabled: false
+    ksql_ssl_enabled: false
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.keystore.jks"
+    ssl_keystore_key_password: certificate
+    ssl_keystore_store_password: certificate
+    ssl_truststore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.truststore.jks"
+    ssl_truststore_password: certificate
+    sasl_protocol: plain
+    sasl_plain_users:
+      admin:
+        principal: 'admin'
+        password: 'admin-secret'
+      schema_registry:
+        principal: 'schema_registry'
+        password: 'schema_registry-secret'
+      kafka_connect:
+        principal: 'kafka_connect'
+        password: 'kafka_connect-secret'
+      ksql:
+        principal: 'ksql'
+        password: 'ksql-secret'
+      kafka_rest:
+        principal: 'kafka_rest'
+        password: 'kafka_rest-secret'
+      control_center:
+        principal: 'control_center'
+        password: 'control_center-secret'
+      kafka_connect_replicator:
+        principal: 'kafka_connect_replicator'
+        password: 'kafka_connect_replicator-secret'
+      client:
+        principal: 'client'
+        password: 'client-secret'
+      platformatory:
+        principal: 'platformatory'
+        password: 'platformatory'
+      user1:
+        principal: 'user1'
+        password: user1-secret
+      user2:
+        principal: 'user2'
+        password: user2-secret
+      user3:
+        principal: 'user3'
+        password: user3-secret
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-topics --bootstrap-server kafka1:9092 --topic sasl-test --create --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-producer --bootstrap-server kafka1:9092 --topic sasl-test --producer.config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic sasl-test --from-beginning --consumer.config /etc/kafka/client/configs/client-1-ssl.properties
+cat /etc/kafka/client/configs/client-1-ssl.properties
+
+========================================== key Points ================================================
+
+TLS
+Broker - keystore
+Client - Truststore
+
+MTLS
+Broker - keystore and Truststore
+Client - keystore and Truststore
+
+SASL-plaintext
+Broker - no
+Client - no
+
+SASL-SSL
+Broker - keystore
+Client - Truststore
+(if mtls enabled)
+Broker - keystore and Truststore
+Client - keystore and Truststore
+
+Internal Mechanism
+The broker or client presents its certificate during the TLS handshake.
+It checks the following
+--> The certificate is signed by a CA in the truststore.
+--> The certificate is valid (not expired/revoked).
+--> The certificate matches the expected hostname (common name or SAN validation).
+Once the trust is established, a secure communication channel is created.
+If SASL is used, authentication happens over this encrypted channel.
+
+========================================== Testing-SASL ================================================
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/testing-sasl/cp-ansible-sandbox
+
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-topics --bootstrap-server kafka1:9092 --topic sasl-test --create --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-producer --bootstrap-server kafka1:9092 --topic sasl-test --producer.config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic sasl-test --from-beginning --consumer.config /etc/kafka/client/configs/client-1-ssl.properties
+cat /etc/kafka/client/configs/client-1-ssl.properties
+
+========================================== mTLS ================================================
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/mtls/cp-ansible-sandbox
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+
+To enable mTLS encryption, add the following in the inventory/ancible-inventory.yml file.
+
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_become: true
+    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    ssl_enabled: true
+    ssl_mutual_auth_enabled: true
+    zookeeper_ssl_enabled: false
+    kafka_controller_ssl_enabled: false
+    kafka_connect_ssl_enabled: false
+    kafka_rest_ssl_enabled: false
+    schema_registry_ssl_enabled: false
+    control_center_ssl_enabled: false
+    ksql_ssl_enabled: false
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.keystore.jks"
+    ssl_keystore_key_password: certificate
+    ssl_keystore_store_password: certificate
+    ssl_truststore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.truststore.jks"
+    ssl_truststore_password: certificate
+    ssl_keystore_alias: "{{inventory_hostname}}"
+    ssl_truststore_ca_cert_alias: caroot
+
+export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
+
+Now successfully
+kafka-topics --bootstrap-server kafka1:9092 --list
+this won't work
+
+But
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+this works
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-topics --bootstrap-server kafka1:9092 --topic mtls-test --create --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-producer --bootstrap-server kafka1:9092 --topic mtls-test --producer.config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic mtls-test --from-beginning --consumer.config /etc/kafka/client/configs/client-1-ssl.properties
+cat /etc/kafka/client/configs/client-1-ssl.properties
+
+========================================== rbac-plaintext ================================================
+
+host file
+
+---
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_become: true
+    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    rbac_enabled: true
+    create_mds_certs: false
+    token_services_public_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenPublicKey.pem
+    token_services_private_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenKeypair.pem
+    mds_super_user: admin
+    mds_super_user_password: secret
+    confluent_cli_download_enabled: true
+    kafka_broker_custom_listeners:
+      client:
+        name: CLIENT
+        port: 9093
+    kafka_broker_custom_properties:
+      ldap.java.naming.factory.initial: com.sun.jndi.ldap.LdapCtxFactory
+      ldap.com.sun.jndi.ldap.read.timeout: 3000
+      ldap.java.naming.provider.url: ldap://ldap:389
+      ldap.java.naming.security.principal: cn=admin,dc=example,dc=com
+      ldap.java.naming.security.credentials: secret
+      ldap.java.naming.security.authentication: simple
+      ldap.user.search.base: DC=example,DC=com
+      ldap.group.search.base: OU=groups,DC=example,DC=com
+      ldap.user.name.attribute: cn
+      ldap.user.memberof.attribute.pattern: CN=(.*),DC=example,DC=com
+      ldap.group.name.attribute: cn
+      ldap.group.member.attribute.pattern: CN=(.*),OU=groups,DC=example,DC=com
+      ldap.user.object.class: top
+      ldap.group.object.class: top
+      allow.everyone.if.no.acl.found: true
+      confluent.metadata.server.enable: true
+
+zookeeper:
+  hosts:
+    zookeeper1:
+    zookeeper2:
+    zookeeper3:
+
+kafka_broker:
+  hosts:
+    kafka1:
+      kafka_broker_principal: "User:kafka1"
+    kafka2:
+      kafka_broker_principal: "User:kafka2"
+    kafka3:
+      kafka_broker_principal: "User:kafka3"
+
+control_center:
+  hosts:
+    control-center:
+
+========================================== rbac-sasl-ssl ================================================
+
+---
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_become: true
+    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    ssl_enabled: true
+    zookeeper_ssl_enabled: false
+    kafka_controller_ssl_enabled: false
+    kafka_connect_ssl_enabled: false
+    kafka_rest_ssl_enabled: false
+    schema_registry_ssl_enabled: false
+    control_center_ssl_enabled: false
+    ksql_ssl_enabled: false
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.keystore.jks"
+    ssl_keystore_key_password: certificate
+    ssl_keystore_store_password: certificate
+    ssl_truststore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.truststore.jks"
+    ssl_truststore_password: certificate
+    sasl_protocol: plain
+    sasl.enabled.mechanisms: oauthbearer,plain
+    listener.name.internal.sasl.enabled.mechanisms: plain
+    sasl_plain_users:
+      admin:
+        principal: 'admin'
+        password: 'secret'
+      control_center:
+        principal: 'control'
+        password: 'controlsystem'
+    rbac_enabled: true
+    create_mds_certs: false
+    token_services_public_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenPublicKey.pem
+    token_services_private_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenKeypair.pem
+    mds_super_user: admin
+    mds_super_user_password: secret
+    confluent_cli_download_enabled: true
+    kafka_broker_custom_listeners:
+      client:
+        name: CLIENT
+        port: 9093
+    kafka_broker_custom_properties:
+      ldap.java.naming.factory.initial: com.sun.jndi.ldap.LdapCtxFactory
+      ldap.com.sun.jndi.ldap.read.timeout: 3000
+      ldap.java.naming.provider.url: ldap://ldap:389
+      ldap.java.naming.security.principal: cn=admin,dc=example,dc=com
+      ldap.java.naming.security.credentials: secret
+      ldap.java.naming.security.authentication: simple
+      ldap.user.search.base: DC=example,DC=com
+      ldap.group.search.base: OU=groups,DC=example,DC=com
+      ldap.user.name.attribute: cn
+      ldap.user.memberof.attribute.pattern: CN=(.*),DC=example,DC=com
+      ldap.group.name.attribute: cn
+      ldap.group.member.attribute.pattern: CN=(.*),OU=groups,DC=example,DC=com
+      ldap.user.object.class: top
+      ldap.group.object.class: top
+      confluent.metadata.server.enable: true
+      super.users: "User:admin;User:control"
+      
+
+zookeeper:
+  hosts:
+    zookeeper1:
+    zookeeper2:
+    zookeeper3:
+
+kafka_broker:
+  hosts:
+    kafka1:
+      kafka_broker_principal: "User:kafka1"
+    kafka2:
+      kafka_broker_principal: "User:kafka2"
+    kafka3:
+      kafka_broker_principal: "User:kafka3"
+
+control_center:
+  hosts:
+    control-center:
+
+========================================== rbac ================================================
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/rbac/cp-ansible-sandbox
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+docker-compose down --volumes
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+ 
+To see the contents of LDAP,
+sudo docker exec -u root -it ldap /bin/bash
+ldapsearch -h 0.0.0.0 -p 389 -D cn=admin,dc=example,dc=com -w secret -b dc=example,dc=com objectclass=*
+ldapsearch -x -D "cn=rahul,ou=devops,ou=users,dc=example,dc=com" -w rahuldevops -b "dc=example,dc=com" "(cn=rahul)"
+ldapsearch -x -LLL -H ldap://ldap:389 -D "cn=admin,dc=example,dc=com" -w secret -b "ou=groups,dc=example,dc=com" "(objectClass=groupofnames)" member
+
+
+sudo docker exec -u root -it cp-ansible-sandbox_kafka1_1 /bin/bash
+sudo docker exec -u root -it ldap /bin/bash
+
+ssh root@kafka1
+sudo apt update && sudo apt install -y curl
+curl -sL --http1.1 https://cnfl.io/cli | sh -s -- latest -b /
+export PATH=$PATH:./bin
+
+ansible-playbook -i ansible/inventories/ansible-inventory.yml /ansible/ansible_collections/confluent/platform/playbooks/confluent-cli.yml
+cat /var/log/kafka/metadata-service.log
+sudo apt update && sudo apt install -y nano
+ldapsearch -h ldap -p 389 -D "cn=connect,ou=system,ou=users,dc=example,dc=com" -w connectsystem -b "ou=users,dc=example,dc=com" "(objectClass=person)" cn
+ldapsearch -x -LLL -H ldap://ldap:389 -D "cn=admin,dc=example,dc=com" -w secret -b "OU=groups,DC=example,DC=com" "(cn=KafkaAdmin)" member
+dn: cn=KafkaAdmin,ou=groups,dc=example,dc=com
+
+confluent login --url http://kafka1:8090
+cat /var/lib/kafka/data/meta.properties 
+confluent iam rbac role-binding create --principal User:admin --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal User:rahul --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal User:will --role DeveloperRead --resource Topic:rbac-test --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal User:deepak --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal User:will --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal Group:KafkaAdmin --role DeveloperWrite --resource Topic:rbac-test --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal Group:FrontendDev --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding create --principal Group:KafkaAdmin --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding list --role DeveloperWrite --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding list --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+confluent iam rbac role-binding delete --principal User:deepak --role SystemAdmin --kafka-cluster CJr4ec8xTZGttlAm8zf1Ow
+
+curl -u admin:secret -X GET "https://kafka1:8090/security/1.0/authenticate" --cacert /etc/kafka/client/certs/ca-cert.pem
+
+confluent login --url http://kafka1:8090
+export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-topics --bootstrap-server kafka1:9092 --topic rbac-test --create --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-producer --bootstrap-server kafka1:9092 --topic rbac-test --producer.config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic rbac-test --from-beginning --consumer.config /etc/kafka/client/configs/client-1-ssl.properties
+
+For kafka1
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -validity 365 -genkey -keyalg RSA -dname "CN=kafka1, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -certreq -file kafka1-cert-file
+echo subjectAltName = DNS:kafka1,IP:127.0.0.1,IP:192.168.1.108,IP:0.0.0.0 >> kafka1-extfile.cnf
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka1-cert-file -out kafka1-cert-signed.pem -days 365 -CAcreateserial -extfile kafka1-extfile.cnf
+keytool -keystore kafka1.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka1.server.keystore.jks -alias kafka1 -import -file kafka1-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka1-cert-signed.pem
+#kafka1-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka1.server.truststore.jks
+
+For kafka2
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -validity 365 -genkey -keyalg RSA -dname "CN=kafka2, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -certreq -file kafka2-cert-file
+echo subjectAltName = DNS:kafka2,IP:127.0.0.1,IP:192.168.1.108,IP:0.0.0.0 >> kafka2-extfile.cnf
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka2-cert-file -out kafka2-cert-signed.pem -days 365 -CAcreateserial -extfile kafka2-extfile.cnf
+keytool -keystore kafka2.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka2.server.keystore.jks -alias kafka2 -import -file kafka2-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka2-cert-signed.pem
+#kafka2-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka2.server.truststore.jks
+
+For kafka3
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -validity 365 -genkey -keyalg RSA -dname "CN=kafka3, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -certreq -file kafka3-cert-file
+echo subjectAltName = DNS:kafka3,IP:127.0.0.1,IP:192.168.1.108,IP:0.0.0.0 >> kafka3-extfile.cnf
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in kafka3-cert-file -out kafka3-cert-signed.pem -days 365 -CAcreateserial  -extfile kafka3-extfile.cnf
+keytool -keystore kafka3.server.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore kafka3.server.keystore.jks -alias kafka3 -import -file kafka3-cert-signed.pem
+openssl verify -CAfile ca-cert.pem kafka3-cert-signed.pem
+#kafka3-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore kafka3.server.truststore.jks
+
+For client
+keytool -keystore client.keystore.jks -alias client -validity 365 -genkey -keyalg RSA -dname "CN=client, OU=Streaming, O=Platformatory, L=Uttarahalli, ST=Karnataka, C=IN"
+keytool -keystore client.keystore.jks -alias client -certreq -file client-cert-file
+echo subjectAltName = DNS:kafka3,IP:127.0.0.1,IP:192.168.1.108,IP:0.0.0.0 >> client-extfile.cnf
+openssl x509 -req -CA ca-cert.pem -CAkey ca-key.pem -in client-cert-file -out client-cert-signed.pem -days 365 -CAcreateserial  -extfile client-extfile.cnf
+keytool -keystore client.keystore.jks -alias CARoot -import -file ca-cert.pem
+keytool -keystore client.keystore.jks -alias client -import -file client-cert-signed.pem
+openssl verify -CAfile ca-cert.pem client-cert-signed.pem
+#kafka3-cert-signed.pem: OK
+keytool -importcert -file ca-cert.pem -alias CARoot -keystore client.truststore.jks
+
+export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
+kafka-topics --bootstrap-server kafka1:9092 --list
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-1-ssl.properties
+kafka-topics --bootstrap-server kafka1:9092 --topic rbac-test --create --command-config /etc/kafka/client/configs/client-1-ssl.properties
+confluent login --url https://kafka1:8090 --ca-cert-path /etc/kafka/client/certs/ca-cert.pem 
+
+=====================================Working======================================================
+
+---
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_become: true
+    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    ssl_keystore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.keystore.jks"
+    ssl_keystore_key_password: certificate
+    ssl_keystore_store_password: certificate
+    ssl_truststore_filepath: "/ansible/ansible_collections/confluent/platform/certs/{{inventory_hostname}}.server.truststore.jks"
+    ssl_truststore_password: certificate
+    sasl_protocol: plain
+    sasl_plain_users:
+      admin:
+        principal: 'admin'
+        password: 'secret'
+      control_center:
+        principal: 'control'
+        password: 'controlsystem'
+    rbac_enabled: true
+    create_mds_certs: false
+    token_services_public_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenPublicKey.pem
+    token_services_private_pem_file: /ansible/ansible_collections/confluent/platform/keys/tokenKeypair.pem
+    mds_super_user: rahul
+    mds_super_user_password: rahuldevops
+    confluent_cli_download_enabled: true
+    kafka_broker_custom_listeners:
+      client:
+        name: CLIENT
+        port: 9093
+    control_center_ldap_user: control
+    control_center_ldap_password: controlsystem
+    kafka_broker_custom_properties:
+      ldap.java.naming.factory.initial: com.sun.jndi.ldap.LdapCtxFactory
+      ldap.com.sun.jndi.ldap.read.timeout: 3000
+      ldap.java.naming.provider.url: ldap://ldap:389
+      ldap.java.naming.security.principal: cn=admin,dc=example,dc=com
+      ldap.java.naming.security.credentials: secret
+      ldap.java.naming.security.authentication: simple
+      ldap.search.mode: GROUPS
+      ldap.user.search.base: OU=users,DC=example,DC=com
+      ldap.group.search.base: OU=groups,DC=example,DC=com
+      ldap.user.name.attribute: cn
+      ldap.user.search.scope: 2
+      ldap.user.memberof.attribute.pattern: cn=(.*),ou=groups,dc=example,dc=com
+      ldap.group.member.attribute.pattern: cn=(.*),ou=.*,ou=users,dc=example,dc=com
+      ldap.group.name.attribute: cn
+      ldap.group.member.attribute: member
+      ldap.user.object.class: person
+      ldap.group.object.class: groupOfNames
+      ldap.logger.level: DEBUG
+      confluent.metadata.server.enable: true
+      super.users: "User:admin;User:rahul;User:control"
+      
+
+zookeeper:
+  hosts:
+    zookeeper1:
+    zookeeper2:
+    zookeeper3:
+
+kafka_broker:
+  hosts:
+    kafka1:
+      kafka_broker_principal: "User:kafka1"
+    kafka2:
+      kafka_broker_principal: "User:kafka2"
+    kafka3:
+      kafka_broker_principal: "User:kafka3"
+
+control_center:
+  hosts:
+    control-center:
+
+========================================== acl ================================================
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Ancible/acl/cp-ansible-sandbox
+
+docker-compose up --build
+docker-compose up
+docker-compose ps -a
+
+Outside container, setup ssh keys
+./setup-ssh-keys.sh
+
+Go inside ansible control node
+sudo docker exec -u root -it cp-ansible-sandbox_ansible-control_1 /bin/bash
+
+Execute the following command
+ansible-playbook confluent.platform.all
+
+ssh root@kafka1
+
+kafka-topics --bootstrap-server kafka1:9092 --list
+
+ssh root@kafka1
+
+cat /var/log/kafka/metadata-service.log
+
+kafka-topics --bootstrap-server kafka1:9092 --list --command-config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+kafka-topics --bootstrap-server kafka1:9092 --topic acl-test --create --command-config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+Write some data to the topic. This should work since the topic has no ACLs and allow.everyone.if.no.acl.found is set
+to true .
+Add an ACL to allow otheruser to write to the topic.
+Attempt to write to the topic again. This time it should fail, since the topic has an ACL but not one that allows kafkauser
+to write to it.
+
+kafka-acls --authorizer-properties zookeeper.connect=zookeeper1:2181 --add --allow-principal User:user1 --operation all --topic acl-test
+kafka-console-producer --bootstrap-server kafka1:9092 --topic acl-test --producer.config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+Create an ACL allowing Platformatory to write to the acl-test topic.
+Attempt to write to the topic once more. This time it should succeed.
+
+kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:Platformatory --operation all --topic acl-test
+
+kafka-console-consumer --bootstrap-server kafka1:9092 --topic acl-test --from-beginning --consumer.config /etc/kafka/client/configs/client-sasl-plaintext.properties
+
+kafka-acls --bootstrap-server kafka1:9092 --command-config /etc/kafka/client/configs/client-sasl-plaintext.properties --add --allow-principal User:user1 --operation all --topic acl-test

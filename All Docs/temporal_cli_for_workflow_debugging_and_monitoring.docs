@@ -1,0 +1,128 @@
+Temporal CLI for Workflow Debugging and Monitoring
+1. Introduction to Workflow Debugging and Monitoring
+
+Workflow debugging and monitoring are crucial aspects of managing workflows within Temporal. They ensure that workflows are running smoothly and allow you to quickly identify and resolve issues. The Temporal CLI provides several features that can help you debug workflows and monitor their progress, history, and performance.
+
+In this document, we will explore how to use the Temporal CLI for workflow debugging and monitoring, covering the commands to view workflow state, inspect workflow history, replay workflows, and monitor performance metrics.
+2. Workflow State Monitoring
+
+To monitor and check the state of a workflow, you can use several commands within the Temporal CLI. This allows you to gain insight into the workflow's current status, whether it's active, completed, or failed, and the events that led to its current state.
+2.1 Listing Workflows
+
+To get an overview of the workflows running in the Temporal system, you can list them using the workflow list command:
+
+temporal workflow list --status <status>
+
+You can filter by the following statuses:
+
+    running: Lists workflows that are still running.
+    completed: Lists workflows that have completed successfully.
+    failed: Lists workflows that have failed.
+
+Example command:
+
+temporal workflow list --status running
+
+This will list all currently running workflows in the Temporal system.
+2.2 Describing a Workflow
+
+To get detailed information about a specific workflow, including its execution status and history, use the workflow describe command:
+
+temporal workflow describe --workflow-id <workflow_id> --run-id <run_id>
+
+This provides:
+
+    The current state of the workflow.
+    Any signals sent to the workflow.
+    The last event that occurred in the workflow.
+    Information on the workflow’s task queue and its activities.
+
+If the --run-id is not provided, the latest run of the workflow will be described by default.
+3. Workflow History Inspection
+
+Temporal stores a detailed history of each workflow that is executed. This history includes all the events associated with the workflow's execution, such as activity starts, completions, retries, state transitions, and errors.
+3.1 Viewing Workflow History
+
+To inspect the detailed history of a workflow, use the workflow history command:
+
+temporal workflow history --workflow-id <workflow_id> --run-id <run_id>
+
+This command retrieves a complete list of events for the workflow, including:
+
+    Activity executions.
+    State transitions (e.g., waiting, running, completed).
+    Timer events.
+    Workflow signal events.
+    Errors or exceptions that occurred during execution.
+
+Viewing the workflow history allows you to debug by inspecting exactly what happened during the execution and where things may have gone wrong.
+4. Replaying Workflows for Debugging
+
+One of the most powerful features of Temporal is the ability to replay workflows based on their historical execution data. This is useful for debugging because it allows you to simulate the exact steps that the workflow took during its execution, helping you identify issues.
+4.1 Replaying a Workflow
+
+To replay a workflow, you can use the workflow replay command:
+
+temporal workflow replay --workflow-id <workflow_id> --run-id <run_id>
+
+The workflow replay command will execute the workflow history in a deterministic manner, enabling you to see how the workflow would behave given its historical state.
+
+You can also specify the --debug flag to get detailed logs during the replay process, which can be helpful for understanding exactly what happened at each step.
+
+Example:
+
+temporal workflow replay --workflow-id <workflow_id> --run-id <run_id> --debug
+
+This will provide detailed logs of the replay, which is especially useful when debugging complex workflows.
+5. Workflow Metrics Monitoring
+
+In addition to workflow state and history, it’s also essential to monitor the performance and behavior of workflows over time. Temporal provides built-in metrics that you can integrate with monitoring tools such as Prometheus or Grafana.
+5.1 Temporal Metrics Overview
+
+Temporal exposes various metrics that track workflow and activity executions. These metrics can help you understand system performance, detect slow workflows, and identify bottlenecks. Some key metrics include:
+
+    Workflow execution duration.
+    Activity execution duration.
+    Task queue backlog.
+    Workflow failures and retries.
+
+5.2 Configuring Prometheus for Temporal
+
+You can configure Temporal to export metrics to Prometheus by enabling the Prometheus exporter in the Temporal configuration. Once configured, Prometheus can scrape Temporal’s metrics at regular intervals.
+
+To enable Prometheus monitoring, you can modify the temporal.yaml configuration file as follows:
+
+global:
+  metrics:
+    enabled: true
+    provider: prometheus
+
+After enabling Prometheus, you can use the Prometheus UI to query and visualize the metrics. Grafana can also be used to create dashboards based on these metrics.
+5.3 Temporal Metrics in Grafana
+
+If you are using Grafana, you can create dashboards to visualize Temporal metrics, such as workflow durations and task queue health. Grafana queries Prometheus and can display real-time data on workflow performance.
+
+Some key metrics to monitor in Grafana include:
+
+    Workflow execution time: To monitor how long workflows take to complete.
+    Task queue backlog: To detect if there are too many tasks waiting to be processed.
+    Activity success/failure rates: To track how many activities are failing versus succeeding.
+
+6. Using Temporal’s Built-in Logging
+
+Temporal provides built-in logging that helps you understand what’s happening inside workflows and activities. While the Temporal CLI doesn’t directly provide logging capabilities, you can configure your Temporal system to use external logging tools like ELK stack (Elasticsearch, Logstash, and Kibana) or Fluentd to collect and display logs for workflows and activities.
+6.1 Configuring Logging
+
+To configure Temporal to send logs to an external system like Elasticsearch or Fluentd, modify the temporal.yaml configuration file:
+
+logger:
+  type: elasticsearch
+  elasticsearch:
+    url: http://localhost:9200
+
+Once configured, you can query logs to identify errors, exceptions, or other critical events in your workflows or activities.
+7. Conclusion
+
+Debugging and monitoring are essential for ensuring that workflows run as expected and for diagnosing and resolving issues that may arise. Temporal provides powerful tools for inspecting workflow state, history, and performance, as well as for replaying workflows for debugging purposes.
+
+By using commands like workflow list, workflow describe, and workflow history, along with integrations for monitoring tools like Prometheus and Grafana, you can maintain a healthy Temporal environment and ensure your workflows perform optimally.

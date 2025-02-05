@@ -1,0 +1,8 @@
+kafka1             | [2024-11-18 10:21:49,933] ERROR Exiting Kafka due to fatal exception during startup. (kafka.Kafka$)
+kafka1             | java.lang.RuntimeException: Received a fatal error while waiting for all of the authorizer futures to be completed.
+
+super.users=User:bob;User:kafka-1;User:kafka-2;User:kafka-3;User:mds;User:schemaregistryUser;User:controlcenterAdmin;User:connectAdmin
+broker.users=User:kafka-1;User:kafka-2;User:kafka-3
+
+ssl.endpoint.identification.algorithm=
+confluent.metrics.reporter.ssl.endpoint.identification.algorithm=

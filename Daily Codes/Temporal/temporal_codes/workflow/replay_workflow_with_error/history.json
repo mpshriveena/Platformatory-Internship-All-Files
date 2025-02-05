@@ -1,0 +1,251 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2024-12-18T08:09:42.049234493Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "14680711",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "DivideWorkflow"
+        },
+        "taskQueue": {
+          "name": "greeting-activities",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "Ng=="
+            },
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "MA=="
+            }
+          ]
+        },
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "3bef36ca-6a69-43e8-a056-8df9ba91fb77",
+        "identity": "25495@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "firstExecutionRunId": "3bef36ca-6a69-43e8-a056-8df9ba91fb77",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "workflowId": "greeting-workflow"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2024-12-18T08:09:42.049279190Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "14680712",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "greeting-activities",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2024-12-18T08:09:42.145384426Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "14680719",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "requestId": "c8f56cbd-dc62-4610-8943-2745d824a82a",
+        "historySizeBytes": "670",
+        "workerVersion": {
+          "buildId": "6c403af2da22d956385018f164df848d"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2024-12-18T08:09:42.187740166Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "14680723",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "workerVersion": {
+          "buildId": "6c403af2da22d956385018f164df848d"
+        },
+        "sdkMetadata": {
+          "coreUsedFlags": [
+            2,
+            3,
+            1
+          ]
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2024-12-18T08:09:42.187801392Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "14680724",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "1",
+        "activityType": {
+          "name": "divide"
+        },
+        "taskQueue": {
+          "name": "greeting-activities",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "Ng=="
+            },
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "MA=="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "0s",
+        "scheduleToStartTimeout": "0s",
+        "startToCloseTimeout": "5s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "4",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "100s",
+          "nonRetryableErrorTypes": [
+            "ActivityError",
+            "ValueError"
+          ]
+        },
+        "useWorkflowBuildId": true
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2024-12-18T08:09:42.210360594Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "14680730",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "5",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "requestId": "d194f3e4-3f76-486f-9d20-9d84907ed6af",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "6c403af2da22d956385018f164df848d"
+        }
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2024-12-18T08:09:42.238527513Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_FAILED",
+      "taskId": "14680731",
+      "activityTaskFailedEventAttributes": {
+        "failure": {
+          "message": "Division by zero is not allowed.",
+          "stackTrace": "  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal-project/env/lib/python3.8/site-packages/temporalio/worker/_activity.py\", line 453, in _run_activity\n    result = await impl.execute_activity(input)\n\n  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal-project/env/lib/python3.8/site-packages/temporalio/worker/_activity.py\", line 711, in execute_activity\n    return await input.fn(*input.args)\n\n  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal_codes/workflow/error_causing_application_for_replay/activity.py\", line 6, in divide\n    raise ValueError(\"Division by zero is not allowed.\")\n",
+          "applicationFailureInfo": {
+            "type": "ValueError"
+          }
+        },
+        "scheduledEventId": "5",
+        "startedEventId": "6",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "retryState": "RETRY_STATE_NON_RETRYABLE_FAILURE"
+      }
+    },
+    {
+      "eventId": "8",
+      "eventTime": "2024-12-18T08:09:42.238541678Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "14680732",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "25479@mpshriveena-HP-Laptop-15s-fq5xxx-574427c54cca418d9351fbe89fdcabfa",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "greeting-activities"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "9",
+      "eventTime": "2024-12-18T08:09:42.259032643Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "14680736",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "8",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "requestId": "9c44c259-08ad-4bdd-860c-3d3ca5e1a94e",
+        "historySizeBytes": "2192",
+        "workerVersion": {
+          "buildId": "6c403af2da22d956385018f164df848d"
+        }
+      }
+    },
+    {
+      "eventId": "10",
+      "eventTime": "2024-12-18T08:09:42.281410554Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "14680740",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "8",
+        "startedEventId": "9",
+        "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+        "workerVersion": {
+          "buildId": "6c403af2da22d956385018f164df848d"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "11",
+      "eventTime": "2024-12-18T08:09:42.281479567Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_FAILED",
+      "taskId": "14680741",
+      "workflowExecutionFailedEventAttributes": {
+        "failure": {
+          "message": "Activity task failed",
+          "cause": {
+            "message": "Division by zero is not allowed.",
+            "stackTrace": "  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal-project/env/lib/python3.8/site-packages/temporalio/worker/_activity.py\", line 453, in _run_activity\n    result = await impl.execute_activity(input)\n\n  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal-project/env/lib/python3.8/site-packages/temporalio/worker/_activity.py\", line 711, in execute_activity\n    return await input.fn(*input.args)\n\n  File \"/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal_codes/workflow/error_causing_application_for_replay/activity.py\", line 6, in divide\n    raise ValueError(\"Division by zero is not allowed.\")\n",
+            "applicationFailureInfo": {
+              "type": "ValueError"
+            }
+          },
+          "activityFailureInfo": {
+            "scheduledEventId": "5",
+            "startedEventId": "6",
+            "identity": "25479@mpshriveena-HP-Laptop-15s-fq5xxx",
+            "activityType": {
+              "name": "divide"
+            },
+            "activityId": "1",
+            "retryState": "RETRY_STATE_NON_RETRYABLE_FAILURE"
+          }
+        },
+        "retryState": "RETRY_STATE_RETRY_POLICY_NOT_SET",
+        "workflowTaskCompletedEventId": "10"
+      }
+    }
+  ]
+}

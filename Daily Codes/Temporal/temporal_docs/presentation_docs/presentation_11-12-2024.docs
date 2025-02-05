@@ -1,0 +1,1491 @@
+Learning Path for Temporal
+
+1. What is Temporal?
+
+	Key concepts: Workflows, Activities, Workers, Tasks, Task Queues
+	Temporal vs. other orchestration tools (e.g., Airflow, Cadence)
+
+                          ============== Task 4 ==============
+2. Set Up Temporal:
+	Install Temporal locally using Docker
+#---------------------------------------Answer Start----------------------------------------------#
+Clone the following repository to install Temporal locally using Docker
+git clone https://github.com/temporalio/docker-compose.git
+cd docker-compose
+docker-compose up
+
+The Temporal Web UI will be accessible at:
+http://localhost:8080
+
+temporal server start-dev --db-filename temporal_data.db
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 5 ==============
+	Understand Temporal server and CLI
+#---------------------------------------Answer Start----------------------------------------------#
+
+The Temporal Server is the core of the Temporal platform, responsible for orchestrating and 
+managing workflows and activities. It ensures the persistence of workflow state, handling retries, 
+timeouts, and failures.
+The Temporal Server is made up of several components that interact to provide fault tolerance, 
+scalability, and high availability.
+
+Key Components:
+
+    *Frontend Service: This service handles client requests, 
+    such as starting workflows, querying workflows, and managing namespaces.
+    *Matching Service: It matches tasks (workflows and activities) to available workers.
+    *History Service: Stores and manages the history and state of workflows. 
+    It ensures that workflows can be replayed if needed.
+    *Worker Service: Executes the activities and logic defined in workflows.
+    *Persistence Layer: The server persists workflow data and task queue information, 
+    which can be backed by databases such as PostgreSQL, MySQL, or Cassandra.
+
+2. The Temporal CLI Tool (temporal)
+
+The temporal CLI tool is used for interacting with the Temporal service. 
+It allows you to manage workflows, activities, task queues, and namespaces, 
+as well as monitor Temporal's status.
+
+Eg:
+temporal workflow list
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 6 ==============
+	Explore the Temporal Web UI
+#---------------------------------------Answer Start----------------------------------------------#
+The Temporal Web UI is a graphical user interface that provides a convenient way to 
+visualize and interact with workflows, manage task queues, and troubleshoot issues. 
+It is especially useful for developers and operators who need to monitor, query, 
+and replay workflows without relying entirely on the command-line interface.
+
+Accessing Temporal Web UI
+If running in docker
+http://localhost:8080
+If running locally
+http://localhost:8233
+
+Things we can do in Temporal UI
+1) Workflow List and Filtering
+2) Workflow Details
+3) Workflow History and State
+4) Searching and Querying
+5) Monitoring Task Queues
+6) Workflow Termination and Cancellation
+
+#----------------------------------------Answer End-----------------------------------------------#
+3. Core Components:
+Workflows:
+                          ============== Task 7 ==============
+	Understand workflow definitions: What makes a function a workflow?
+#---------------------------------------Answer Start----------------------------------------------#
+What is workflow?
+A Workflow is a sequence of steps that defines the overall flow of your application.
+Eg: E-Commerce Order Processing Workflow
+Some of the important properties of workflow are
+--> Durability
+--> Deterministic Behavior
+--> Long-Running Capability
+--> State Management
+--> Error Handling and retry
+
+Workflow Definitions
+Eg:
+from temporalio import workflow
+@workflow.defn
+class GreetSomeone():
+    @workflow.run
+    async def run(self, name:str) -> str:
+        return f"Hello {name}!"
+
+What makes a function a workflow?
+@workflow.defn --> This decorater is making this a workflow.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 8 ==============
+	Workflow execution flow: Steps, decisions, and retries.
+#---------------------------------------Answer Start----------------------------------------------#
+Workflow execution flow
+Steps: 
+Create a client  -->  Start workflow using client  -->  Wailt for result
+
+Decisions:
+@workflow.defn
+async def order_workflow(order_id: int):
+    payment_status = await workflow.execute_activity(process_payment, order_id)
+    if payment_status == "SUCCESS":
+        await workflow.execute_activity(fulfill_order, order_id)
+    else:
+        await workflow.execute_activity(cancel_order, order_id)
+
+Retries
+Retries are automatic attempts to re-execute a failed Activity or Workflow. 
+They are a key part of Temporal's error handling.
+    Default Behavior:
+        For Activities: By default, Activity Task Executions are retried automatically 
+        when they fail.
+        For Workflows: Workflow Executions are not associated with a default Retry Policy 
+        and thus do not retry by default.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 9 ==============
+	Determinism in workflows: Why workflows must be deterministic.
+#---------------------------------------Answer Start----------------------------------------------#
+Determinism in Workflows means that given the same inputs and sequence of events, 
+a Workflow will always produce the same outputs and make the same decisions.
+why Workflows must be deterministic:
+    --> Replay Mechanism
+    --> State Recovery
+    --> Consistency
+
+To maintain determinism, 
+We should avoid using non-deterministic operations directly in Workflow code.
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 10 ==============
+	Workflow state and history: How Temporal tracks workflow state.
+#---------------------------------------Answer Start----------------------------------------------#
+Workflow history:
+The workflow history is a sequence of events that records every step and decision 
+taken during the execution of a workflow, including the activities that were executed, 
+any decisions that were made, and any signals or timeouts that occurred.
+
+Workflow State:
+The state of a Workflow refers to the current condition or status of the Workflow Execution.
+
+How Temporal tracks workflow state.
+Temporal tracks Workflow state through a mechanism called Event Sourcing, 
+which is implemented using an Event History.
+
+Event Sourcing:
+Temporal records every action and decision made during a Workflow Execution in an Event History.
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 11 ==============
+	Workflow IDs and run IDs: Differences and usage.
+#---------------------------------------Answer Start----------------------------------------------#
+Workflow ID
+The Workflow ID is a unique identifier for a workflow. 
+It is used to track the workflow across multiple executions and allow workflows 
+to be managed over their lifecycle.
+Use Cases:
+    --> Uniqueness
+    --> Re-execution
+
+Run ID
+The Run ID is a unique identifier for a specific execution of a workflow. 
+This is generated automatically so that each execution is uniquely identifiable.
+Use Cases:
+    --> Multiple Runs
+    --> Tracking History
+#----------------------------------------Answer End-----------------------------------------------#
+Activities:
+                          ============== Task 12 ==============
+	Defining an activity: Structure and purpose.
+#---------------------------------------Answer Start----------------------------------------------#
+Defining an activity contains two steps:
+--> Import activity from SDK
+--> Use @activity.defn to define an activity
+
+Structure:
+from temporalio import activity
+@activity.defn
+async def greet_in_english(name: str) -> str:
+    return f"Hello {name}!"
+
+Purpose:
+--> Random functions
+--> Database operations
+--> Connecting to external environment
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 13 ==============
+	Activity options: Timeouts, retries, and heartbeats.
+#---------------------------------------Answer Start----------------------------------------------#
+Activity Timeouts: 
+A timeout is a specified duration after which an operation (like a Workflow or Activity)
+is considered to have failed if it hasn't completed.
+    1) Schedule-To-Start Timeout
+    2) Start-To-Close Timeout
+    3) Schedule-To-Close Timeout
+    4) Activity Heartbeats
+
+Simple Diagram:
+
+                     --|-- ActivityTaskScheduled  -|-                       --|--
+                       |                           |                          |
+                       |                           |--- Schedule-To-Start     |
+                       |                           |                          |
+Activity Execution ----|   ActivityTaskStarted    -|-   -|-                   |---- Schedule-To Close
+                       |                                 |                    |
+                       |                                 |--- Start-To-Close  |
+                       |                                 |                    |
+                     --|-- ActivityTaskCompleted        -|-                 --|--
+
+Retries:
+Retries are automatic attempts to re-execute a failed Activity or Workflow. 
+retry_policy = RetryPolicy(
+    retries=20,  # Maximum attempts
+    initial_interval=5,  # Initial retry interval in seconds
+    backoff_coefficient=2,  # Exponential backoff
+    maximum_interval=60  # Max delay between retries in seconds
+)
+# Using the activity options in the worker
+worker = Worker(
+    client=client,
+    task_queue="example-task-queue",
+    activities=[unreliable_activity],
+    retry_policy=retry_policy
+)
+
+Heartbeats:
+What is an Activity Heartbeat in Temporal?
+An Activity Heartbeat is a ping from the Worker that is executing the Activity 
+to the Temporal Service. Each ping informs the Temporal Service that the Activity Execution 
+is making progress and the Worker has not crashed.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 14 ==============
+	Activity workers: How workers execute activities.
+#---------------------------------------Answer Start----------------------------------------------#
+How workers execute activities:
+
+Polling for Tasks
+Activity workers are responsible for polling the Temporal service to get tasks (activities) from 
+the task queue. The task queue is where Temporal stores activities that need to be executed. 
+When a workflow schedules an activity, it is assigned to a specific task queue, and activity 
+workers that are listening to that queue will pick it up.
+
+Executing the Activity
+Once an activity worker receives a task, it executes the corresponding activity function. 
+Activities are defined using Python functions (or other supported languages), and the worker 
+executes these functions when they are scheduled.
+
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 15 ==============
+	Local activities vs. normal activities: Use cases and differences.
+#---------------------------------------Answer Start----------------------------------------------#
+Normal Activity
+A normal activity is the standard type of activity in Temporal. 
+These activities are executed by activity workers that listen for tasks in a task queue. 
+These activities can be executed remotely, which means the worker might be running on a 
+different machine or container from the Temporal service itself.
+
+When a workflow calls a normal activity, the following steps occur:
+    The workflow code schedules an activity.
+    The activity is sent to a task queue where the Temporal service stores it.
+    Activity workers poll the task queue and pick up the activity to execute it.
+    The activity executes on the worker and completes, sending the result back to the workflow.
+
+from temporalio import workflow
+from datetime import timedelta
+@workflow.defn
+class MyWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        return await workflow.execute_activity(
+            my_activity,
+            name,
+            start_to_close_timeout=timedelta(seconds=10),
+        )
+
+Local Activities
+A local activity is an activity that is executed directly within the context of the 
+same worker as the calling workflow. Unlike normal activities, 
+local activities do not involve sending tasks to a task queue. 
+Instead, they are executed synchronously within the workflow execution process itself.
+
+When a workflow calls a local activity, the following steps occur:
+    The workflow code schedules a local activity.
+    The local activity executes immediately in the same worker that is running the workflow.
+    The local activity’s result is returned directly to the workflow, 
+    without the need for task queue interaction.
+
+from temporalio import workflow
+from datetime import timedelta
+@workflow.defn
+class MyWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        return await workflow.execute_local_activity(
+            my_local_activity,
+            name,
+            start_to_close_timeout=timedelta(seconds=10),
+        )
+
+#----------------------------------------Answer End-----------------------------------------------#
+Workers:
+                          ============== Task 16 ==============
+	Worker architecture: How workers interact with Temporal.
+#---------------------------------------Answer Start----------------------------------------------#
+A worker in Temporal consists of several key components that work together to enable task processing:
+
+    Task Queue Polling: Workers poll task queues for tasks that need to be executed (either activities or workflows).
+    Task Execution: Once a task is retrieved from the task queue, the worker executes the corresponding activity or workflow code.
+    Temporal Server Interaction: Workers interact with the Temporal server to register workflows, poll task queues, report task completion, and handle retries.
+    Worker Configuration: Workers can be configured to handle multiple task queues and tasks concurrently, making it possible to scale horizontally.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 17 ==============
+	Setting up workers: Configuration and best practices.
+#---------------------------------------Answer Start----------------------------------------------#
+Setting up workers:
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from workflow import GreetSomeone
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    # Run the worker
+    worker = Worker(client, task_queue="greeting-tasks", workflows=[GreetSomeone])
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 18 ==============
+	Scaling workers: Horizontal scaling and load distribution.
+#---------------------------------------Answer Start----------------------------------------------#
+Scaling Workers
+To handle increasing workloads, Temporal allows you to scale workers horizontally by 
+running multiple instances of a worker process. By running multiple worker instances, 
+you can increase the capacity of your Temporal system to handle more tasks simultaneously.
+
+Horizontal Scaling
+Running multiple instances of a worker can increase the throughput and fault tolerance of your Temporal system. Each worker instance can poll different task queues and handle different tasks concurrently, which is ideal for workloads that require parallel processing.
+worker1.start()  # For first worker
+worker2.start()  # For second worker
+worker3.start()  # For third worker
+When scaling workers horizontally, it's important to ensure that your system is configured to handle worker load distribution effectively, especially when multiple queues are involved.
+
+Dynamic Scaling
+We can also scale the number of worker instances dynamically based on the number of 
+tasks in the queue or system performance. Many cloud platforms allow you to auto-scale 
+resources based on task load, which can be integrated with Temporal to handle variable 
+workloads efficiently.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 19 ==============
+	Graceful worker shutdown: How to stop workers without interrupting workflows.
+#---------------------------------------Answer Start----------------------------------------------#
+What is Graceful Shutdown?
+Graceful shutdown refers to the process where workers stop polling for new tasks 
+from the task queue and complete the tasks they are already processing. 
+Once all active tasks are finished, the worker stops without interrupting in-progress workflows. 
+This ensures that workflows don’t experience unexpected behavior due to workers being abruptly terminated.
+
+import asyncio
+import signal
+from temporalio.client import Client
+from temporalio.worker import Worker
+from workflow import GreetSomeone
+
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    worker = Worker(client, task_queue="greeting-tasks", workflows=[GreetSomeone])
+    shutdown_event = asyncio.Event() 
+    #an asyncio Event that will be used to signal when the Worker should shut down.
+    def signal_handler(): 
+    # a function that will be called when a SIGINT signal (Ctrl+C) is received. 
+    #It sets the shutdown event
+        print("Received Ctrl+C, initiating graceful shutdown...")
+        shutdown_event.set()
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(signal.SIGINT, signal_handler) 
+    #get the current event loop and add the signal_handler to be called 
+    #when a SIGINT signal is received
+    worker_task = asyncio.create_task(worker.run())
+    #starts the Worker running as an asyncio task
+    try:
+        await shutdown_event.wait()
+        #waits for the shutdown event to be set
+    finally:
+        print("Shutting down worker...")
+        await worker.shutdown()
+        print("Worker shutdown complete")
+        #When the shutdown event is set, these lines initiate the Worker's shutdown process 
+        #and wait for it to complete
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+#----------------------------------------Answer End-----------------------------------------------#
+4. Programming with Temporal:
+
+Temporal SDKs:
+                          ============== Task 20 ==============
+	Choosing an SDK: Go, Java, Python, or TypeScript.
+#---------------------------------------Answer Start----------------------------------------------#
+Need for SDK :
+The Temporal SDK is a set of software development kits (SDKs) that allow you to interact with the 
+Temporal system programmatically.
+
+The choosen SDK is python.
+Reason:
+Easier language
+For Python-based teams building machine learning pipelines, data-driven workflows, 
+or rapid prototyping.
+If you are working in a research or data-heavy environment where Python's ecosystem is beneficial.
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 21 ==============
+	Install and set up the SDK: Project structure and dependencies.
+#---------------------------------------Answer Start----------------------------------------------#
+To install Python SDK, execute the below commands.
+mkdir temporal-project
+cd temporal-project
+sudo apt install python3.8-venv  #Specify your python version
+python3 -m venv env
+python3 -m pip install temporalio
+pip install asyncio
+
+Good Project Structure
+my_temporal_project/
+├── workflows/
+│   └── my_workflow.py
+├── activities/
+│   └── my_activity.py
+├── workers/
+│   └── worker.py
+├── client.py
+└── requirements.txt
+#----------------------------------------Answer End-----------------------------------------------#
+
+	Building a Workflow:
+                          ============== Task 22 ==============	
+		Define a simple workflow: Code example and explanation.
+#---------------------------------------Answer Start----------------------------------------------#
+There are three steps for turning a Python function into a Workflow Definition:
+    1) Import the workflow module from the SDK
+    2) Add the @workflow.defn decorator to the class that will define the Workflow Definition
+    3) Add the @workflow.run decorator to the function that defines the Workflow Function
+
+python --> class --> workflow definition
+workflow.py
+
+from temporalio import workflow #imports workflow module from temporal Python SDK
+@workflow.defn #add this decorator to the class that will define the workflow definition
+class GreetSomeone():
+    @workflow.run #add this decorator to the function that will define the workflow definition
+    async def run(self, name:str) -> str: # entry point for running the workflow
+        return f"Hello {name}!" #returns the output
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 23 ==============
+		Registering workflows: How to register with the Temporal server.
+#---------------------------------------Answer Start----------------------------------------------# 
+To register the workflow, first we have to initialize the worker. The worker is responsible for 
+registering the workflow with the temporal cluster
+worker.py
+
+import asyncio #to run asynchronous tasks concurrently
+from temporalio.client import Client #to interact with the temporal server
+from temporalio.worker import Worker #listen to task queue and execute workflows & activities
+from workflow import GreetSomeone
+async def main(): # an synchronous function
+    client = await Client.connect("localhost:7233", namespace="default")
+    # Run the worker
+    worker = Worker(client, task_queue="greeting-tasks", workflows=[GreetSomeone])
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/workflow/simple_workflow/worker.py
+
+There will be no output
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 24 ==============
+		Workflow execution: Start, signal, and query a workflow.
+#---------------------------------------Answer Start----------------------------------------------# 
+1) Starting the workflow:-
+
+There are two ways to start a workflow
+--> Through CLI
+--> Through custom code (client)
+
+The temporal CLI directly interacts with temporal server to start the workflow, handle workflow 
+cycle and so on
+When we are using custom code, we are creating a client and that client will interact with the 
+temporal server
+      --> Main advantage : Full programmatic control, handle results, errors, and dynamic inputs
+
+--> Through CLI
+temporal workflow start \
+    --type GreetSomeone \
+    --task-queue greeting-tasks \
+    --workflow-id my-first-workflow \
+    --input '"Veena"'
+Still no output
+
+There are two ways to see the output
+--> Through Temporal UI
+--> Through Temporal CLI using show command
+temporal workflow show --workflow-id my-first-workflow
+
+--> Through custom code
+client.py
+
+import asyncio
+import sys
+from workflow import GreetSomeone
+from temporalio.client import Client
+async def main():
+    # Create client connected to server at the given address
+    client = await Client.connect("localhost:7233") 
+    #await wont block other tasks while connection is being established
+    # Execute a workflow
+    handle = await client.start_workflow(
+        GreetSomeone.run,
+        sys.argv[1],
+        id="greeting-workflow",
+        task_queue="greeting-tasks",
+    )
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID {handle.result_run_id}")
+    result = await handle.result() #Waits for the workflow to complete and retrieves the result
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/workflow/simple_workflow/client.py veena
+
+2) Signalling the workflow
+Signaling allows external systems to send messages or events to a running workflow, 
+triggering actions or changing its state.
+
+There are two ways to signal a workflow
+--> Through CLI
+--> Through custom code (client)
+
+--> Through custom code
+Let's first create a continuously running workflow
+workflow.py
+
+import asyncio
+from temporalio import workflow
+@workflow.defn
+class ProductsLeft:
+    def __init__(self):
+        self.products = 0
+    @workflow.run
+    async def run(self, products: int) -> int:
+        self.products = products
+        while self.products > 0:
+            await asyncio.sleep(1)
+            print(self.products)
+        return self.products
+    @workflow.signal
+    async def update_products(self, new_products: int):
+        print(f"Receive a signal to update the products to {new_products}")
+        self.products = new_products
+    @workflow.query
+    async def get_product_count(self) -> int:
+        print(f"Receive a query to get the products left")
+        return self.products
+
+worker.py
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from workflow import ProductsLeft
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    # Run the worker
+    worker = Worker(client, task_queue="products-tasks", workflows=[ProductsLeft])
+    print("Starting worker.....")
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/workflow/signal_and_query/worker.py
+
+client.py
+
+import asyncio
+import sys
+from workflow import ProductsLeft
+from temporalio.client import Client
+from temporalio.client import WorkflowFailureError
+async def main():
+    try:
+        client = await Client.connect("localhost:7233")
+        workflow_handle = await client.start_workflow(
+        ProductsLeft.run,
+        int(sys.argv[1]),
+        id="products-workflow",
+        task_queue="products-tasks"
+    )
+        result = await workflow_handle.result()
+        print(f"Workflow finished with result: {result}")
+    except WorkflowFailureError as e:
+        print(f"Workflow was cancelled or terminated during execution")
+    except Exception as e:
+        print(f"Error in workflow execution: {str(e)}")
+asyncio.run(main())
+
+python3 ../temporal_codes/workflow/signal_and_query/client.py
+
+Now Let's signal the workflow
+signal_client.py
+
+import asyncio
+import sys
+from temporalio.client import Client
+from workflow import ProductsLeft
+
+async def signal_workflow():
+    client = await Client.connect("localhost:7233")
+    workflow_id = "products-workflow"
+    try:
+        signalled_result = await client.get_workflow_handle(workflow_id).signal(ProductsLeft.update_products, int(sys.argv[1]))
+        print(f"Products updated to {int(sys.argv[1])}" )
+    except Exception as e:
+        print(f"Error while signalling workflow: {e}")
+
+asyncio.run(signal_workflow())
+
+python3 ../temporal_codes/workflow/signal_and_query/signal_client.py
+
+--> Through Temporal CLI using signal command
+temporal workflow signal --workflow-id products-workflow --name update_products --input 48
+
+3) Querying a workflow
+Querying allows external systems to ask a running workflow for its current state or other 
+information without affecting its execution.
+
+There are two ways to query a workflow
+--> Through CLI
+--> Through custom code (client)
+
+--> Through CLI
+temporal workflow query --workflow-id=products-workflow --type=get_product_count
+
+--> Through custom code (client)
+query_client.py
+
+import asyncio
+from temporalio.client import Client
+from workflow import ProductsLeft
+async def query_workflow():
+    client = await Client.connect("localhost:7233")  # Adjust for your server
+    workflow_id = "products-workflow"
+    try:
+        queried_result = await client.get_workflow_handle(workflow_id).query(ProductsLeft.get_product_count)
+        print(f"Products left till now is {queried_result}" )
+    except Exception as e:
+        print(f"Error while canceling workflow: {e}")
+asyncio.run(query_workflow())
+
+python3 ../temporal_codes/workflow/signal_and_query/query_client.py
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 25 ==============
+	Building Activities:
+		Write and register activities.
+#---------------------------------------Answer Start----------------------------------------------#
+workflows --> deterministic
+activities -- non-deterministic
+
+First,lets define the activity. Activities are defined using @activity.defn decorator
+activity.py
+
+from temporalio import activity
+@activity.defn
+async def greet_in_english(name: str) -> str:
+    return f"Hello {name}!"
+
+Next, we have to register the activity. Thisis basically running the worker while registering the
+activity
+register_activity.py
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from activity import greet_in_english
+from activity_workflow import GreetingWorkflow
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    worker = Worker(
+        client,
+        task_queue="greeting-activities",
+        workflows=[GreetingWorkflow], 
+        #worker will be able to execute these activities only when they are called by workflows
+        activities=[greet_in_english],
+    )
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Note: worker will be able to execute these activities only when they are called by workflows
+
+Run the worker and register the activity
+python3 ../temporal_codes/activities/simple_activity/register_activity.py
+
+Once activities are defined and registered, workflows can invoke them. Activities are 
+typically executed asynchronously from within workflows
+activity_workflow.py
+
+from datetime import timedelta
+from temporalio import workflow
+from activity import greet_in_english  # Import activities from activity.py
+
+@workflow.defn
+class GreetingWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        # Use the activity inside the workflow
+        greeting = await workflow.execute_activity( #call an activity from within the workflow
+            greet_in_english,
+            name,
+            start_to_close_timeout=timedelta(seconds=5),
+        )
+        return greeting
+
+Next we have to execute the workflow we just defined.
+execute_workflow.py
+
+import asyncio
+import sys
+from temporalio.client import Client
+from activity_workflow import GreetingWorkflow  # Import your workflow
+async def main():
+    client = await Client.connect("localhost:7233")
+    # Start the workflow
+    handle = await client.start_workflow(
+        GreetingWorkflow.run,
+        sys.argv[1],
+        id="greeting-workflow",
+        task_queue="greeting-activities",
+    )
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID: {handle.result_run_id}")
+    # Wait for the result of the workflow
+    result = await handle.result()
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Execute the workflow
+python3 ../temporal_codes/activities/simple_activity/execute_workflow.py veena
+
+Another Example: HTTP Activity (A non-deterministic Use Case)
+worker.py
+
+import asyncio
+import aiohttp
+from temporalio.client import Client
+from temporalio.worker import Worker
+from translate import TranslateActivities
+from greeting import GreetSomeone
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    # Run the worker
+    async with aiohttp.ClientSession() as session:
+        activities = TranslateActivities(session)
+        worker = Worker(
+            client,
+            task_queue="greeting-tasks",
+            workflows=[GreetSomeone],
+            activities=[activities.greet_in_spanish],
+        )
+        print("Starting the worker....")
+        await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/activities/httpactivity/worker.py
+
+translate.py
+
+import urllib.parse
+from temporalio import activity
+class TranslateActivities:
+    def __init__(self, session):
+        self.session = session
+    @activity.defn
+    async def greet_in_spanish(self, name: str) -> str:
+        base = f"http://localhost:9999/get-spanish-greeting"
+        url = f"{base}?name={urllib.parse.quote(name)}"
+        async with self.session.get(url) as response:
+            response.raise_for_status()
+            return await response.text()
+greeting.py
+
+from datetime import timedelta
+from temporalio import workflow
+with workflow.unsafe.imports_passed_through():
+    from translate import TranslateActivities
+@workflow.defn
+class GreetSomeone:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        greeting = await workflow.execute_activity_method(
+            TranslateActivities.greet_in_spanish,
+            name,
+            start_to_close_timeout=timedelta(seconds=5),
+        )
+        return greeting
+
+starter,py
+
+import asyncio
+import sys
+from greeting import GreetSomeone
+from temporalio.client import Client
+async def main():
+    # Create client connected to server at the given address
+    client = await Client.connect("localhost:7233")
+    # Execute a workflow
+    handle = await client.start_workflow(
+        GreetSomeone.run,
+        sys.argv[1],
+        id="greeting-workflow",
+        task_queue="greeting-tasks",
+    )
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID {handle.result_run_id}")
+    result = await handle.result()
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/activities/httpactivity/starter.py
+
+microservice.py
+
+from flask import Flask, request
+app = Flask(__name__)
+@app.route('/get-spanish-greeting', methods=['GET'])
+def spanish_greeting_handler():
+    name = request.args.get('name', None)
+    if name:
+        translation = f"¡Hola, {name}!"
+        return translation,  200
+    else:
+        return "Missing required 'name' parameter.", 400
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=9999)
+
+python3 ../temporal_codes/activities/httpactivity/worker.py
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 26 ==============
+		Run activities in parallel or sequentially.
+#---------------------------------------Answer Start----------------------------------------------# 
+1) Sequentially:-
+
+Define the activity
+activity.py
+
+from temporalio import activity
+
+@activity.defn
+async def upper_case(name: str) -> str:
+    upper = name.upper()
+    return f"{upper}!"
+
+@activity.defn
+async def greet_in_english(name: str) -> str:
+    return f"Hello {name}!"
+
+Register the activity and start the worker.
+register_activity.py
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from activity import greet_in_english, upper_case
+from activity_workflow import GreetingWorkflow
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    worker = Worker(
+        client,
+        task_queue="greeting-activities",
+        workflows=[GreetingWorkflow],
+        activities=[upper_case,greet_in_english],
+    )
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/activities/sequential_activity/register_activity.py
+
+Create workflow for the activity
+activity_workflow.py
+
+from datetime import timedelta
+from temporalio import workflow
+from activity import upper_case,greet_in_english  # Import activities from activity.py
+
+@workflow.defn
+class GreetingWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        upper_name = await workflow.execute_activity(
+            upper_case,
+            name,
+            start_to_close_timeout=timedelta(seconds=5),
+        )
+        greeting = await workflow.execute_activity(
+            greet_in_english,
+            upper_name,
+            start_to_close_timeout=timedelta(seconds=5),
+        )
+        return greeting
+	
+Execute the workflow
+execute_workflow.py
+
+import asyncio
+import sys
+from temporalio.client import Client
+from activity_workflow import GreetingWorkflow  # Import your workflow
+async def main():
+    client = await Client.connect("localhost:7233")
+    # Start the workflow
+    handle = await client.start_workflow(
+        GreetingWorkflow.run,
+        sys.argv[1],
+        id="greeting-workflow",
+        task_queue="greeting-activities",
+    )
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID: {handle.result_run_id}")
+    # Wait for the result of the workflow
+    result = await handle.result()
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Execute the workflow
+python3 ../temporal_codes/activities/sequential_activity/execute_workflow.py veena
+
+2) Parallel:-
+
+Define the activity
+activity.py
+
+from temporalio import activity
+
+@activity.defn
+async def greet_in_english(name: str) -> str:
+    return f"Hello {name}!"
+
+@activity.defn
+async def how_are_you(name: str) -> str:
+    return f"How are you, {name}?"
+
+Register the activity and start the worker.
+register_activity.py
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from activity import greet_in_english, how_are_you
+from activity_workflow import GreetingWorkflow
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    worker = Worker(
+        client,
+        task_queue="greeting-activities",
+        workflows=[GreetingWorkflow],
+        activities=[greet_in_english,how_are_you],
+    )
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+python3 ../temporal_codes/activities/parallel_activity/register_activity.py
+
+Create workflow for the activity
+activity_workflow.py
+
+import asyncio
+from datetime import timedelta
+from temporalio import workflow
+from activity import greet_in_english, how_are_you  # Import activities from activity.py
+
+@workflow.defn
+class GreetingWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        # Use the activity inside the workflow
+        results = await asyncio.gather(
+            workflow.execute_activity(greet_in_english,name,start_to_close_timeout=timedelta(seconds=5)),
+            workflow.execute_activity(how_are_you,name,start_to_close_timeout=timedelta(seconds=5))
+        )
+        greetings = results[0]
+        well_being = results[1]
+        return f"{greetings}.{well_being}"
+	
+Execute the workflow
+execute_workflow.py
+
+import asyncio
+import sys
+from temporalio.client import Client
+from activity_workflow import GreetingWorkflow  # Import your workflow
+async def main():
+    client = await Client.connect("localhost:7233")
+    # Start the workflow
+    handle = await client.start_workflow(
+        GreetingWorkflow.run,
+        sys.argv[1],
+        id="greeting-workflow",
+        task_queue="greeting-activities",
+    )    
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID: {handle.result_run_id}")
+    # Wait for the result of the workflow
+    result = await handle.result()
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Execute the workflow
+python3 ../temporal_codes/activities/parallel_activity/execute_workflow.py veena
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 27 ==============
+		Error handling within activities.
+#---------------------------------------Answer Start----------------------------------------------# 
+Error handling is a crucial aspect of any workflow, and Temporal provides robust mechanisms
+to handle errors both within activities and workflows. Activities, being external 
+and often dependent on external resources, can fail due to various reasons such as 
+timeouts, resource unavailability, or logic errors. Temporal allows you to define retries,
+handle exceptions, and ensure that workflows continue operating smoothly even in the 
+face of failure.
+
+Types of Errors in Activities
+
+In Temporal, errors can arise due to various reasons. There are two main categories of errors:
+
+    -->Application Failures: Errors that occur due to business logic, invalid input, or other 
+	expected conditions within the activity.
+    -->System Failures: Errors that occur due to failures in the system, such as network errors, 
+	timeouts, or service unavailability.
+
+Various methods in error handling
+1) Raising Error
+Lets make an activity to raise error
+activity.py
+
+from temporalio import activity
+@activity.defn
+async def divide(a: int, b: int) -> float:
+    if b == 0:
+        raise ValueError("Division by zero is not allowed.")
+    return a / b
+
+register_activity.py
+
+import asyncio
+from temporalio.client import Client
+from temporalio.worker import Worker
+from activity import divide
+from activity_workflow import DivideWorkflow
+async def main():
+    client = await Client.connect("localhost:7233", namespace="default")
+    worker = Worker(
+        client,
+        task_queue="greeting-activities",
+        workflows=[DivideWorkflow],
+        activities=[divide],
+    )
+    await worker.run()
+if __name__ == "__main__":
+    asyncio.run(main())
+
+activity_workflow.py
+
+from datetime import timedelta
+from temporalio import workflow
+from activity import divide  # Import activities from activity.py
+from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
+
+@workflow.defn
+class DivideWorkflow:
+    @workflow.run
+    async def run(self, a: int, b: int) -> str:
+        retry_policy = RetryPolicy(
+            maximum_attempts=1
+        )
+        try:
+            answer = await workflow.execute_activity(
+            divide,
+            args=(a,b),
+            start_to_close_timeout=timedelta(seconds=5),
+            retry_policy=retry_policy
+        )
+            return str(answer)
+        except ActivityError as e:
+            return f"{str(e.cause)}"
+        except Exception as e:
+            return f"Workflow failed with error: {str(e)}"
+
+Need for retry here:
+ValueError is raised in the activity but not caught in the workflow because it retries 
+indefinitely. Thats why retries are specified.
+
+execute_workflow.py
+
+import asyncio
+import sys
+from temporalio.client import Client
+from activity_workflow import DivideWorkflow  # Import your workflow
+async def main():
+    client = await Client.connect("localhost:7233")
+    # Start the workflow
+    handle = await client.start_workflow(
+        DivideWorkflow.run,  # Workflow function
+        args=(int(sys.argv[1]), int(sys.argv[2])),
+        id="greeting-workflow",  # Workflow ID
+        task_queue="greeting-activities"  # Task queue
+    )
+    print(f"Started workflow. Workflow ID: {handle.id}, RunID: {handle.result_run_id}")
+    # Wait for the result of the workflow
+    result = await handle.result()
+    print(f"Result: {result}")
+if __name__ == "__main__":
+    asyncio.run(main())
+
+To check whether raising error is working file, execute the following commands. The second 
+command should throw error
+python3 ../temporal_codes/activities/raising_error/execute_workflow.py 2 4
+python3 ../temporal_codes/activities/raising_error/execute_workflow.py 2 0
+
+2) Retry Policies
+retry_policy = RetryPolicy(
+            initial_interval=timedelta(seconds=15),#time to wait between the first & second attempt
+            backoff_coefficient=2.0, #interval increases by a factor of 2 after each retry
+            maximum_interval=timedelta(seconds=160), #but should not exeed this value
+            maximum_attempts=100, # retry stops after 100 attempts
+        )
+3) Handling Non-Retriable Errors
+Some errors might not be suitable for retrying, such as logic errors, invalid inputs, or 
+permanent service failures. In such cases, it is important to catch these errors and handle 
+them gracefully within the workflow.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 27 ==============
+	Debugging:
+		Workflow replay: Replaying a workflow to debug it.
+#---------------------------------------Answer Start----------------------------------------------# 
+What is Replaying a workflow?
+Replaying a workflow refers to the process of re-executing a workflow from the beginning, 
+using its historical execution data, without actually invoking the underlying activities again.
+
+Replaying does not re-run the actual activities. Instead, Temporal replays the workflow's decision
+logic and re-applies the events in the workflow's history. The activities themselves are not 
+executed again.
+
+Step 1: Fetch history
+History can be fetched in two ways:
+1) Through UI
+In Temporal UI, when a particular workflow is viewed, Event history is shown at the bottom.
+
+2) Through CLI
+Using workflow describe command, we can get a brief overview of execution time, IDs and result.
+temporal workflow describe --workflow-id greeting-workflow
+
+Complete history can be obtained from show command
+temporal workflow show --workflow-id=products-workflow
+
+To get the history in json format
+temporal workflow show --workflow-id greeting-workflow --output json
+
+To put the json output into a file
+temporal workflow show --workflow-id greeting-workflow --output json >>history.json
+temporal workflow show --workflow-id greeting-workflow --run-id 157f233f-de97-4fdf-a907-dd71548f312b  --output json >>history.json
+
+import json
+import asyncio
+from temporalio.worker import Replayer
+from temporalio.client import WorkflowHistory
+from workflow import GreetSomeone
+
+async def replay_workflow():
+    with open("/home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/temporal_codes/workflow/replay_workflow/history.json", "r") as f:
+        history_json = json.load(f)
+#opens a JSON file containing the Workflow history and loads its contents into history_json.
+    events = history_json["events"]
+    workflow_id = "greeting-workflow"
+    history = {
+    'events': events
+    }
+# extract the events from the loaded JSON and prepare a history dictionary with the events.
+    workflow_history = WorkflowHistory.from_json(workflow_id, history)
+# creates a WorkflowHistory object from the workflow ID and the prepared history dictionary
+    replayer = Replayer(workflows=[GreetSomeone])
+# creates a Replayer object, registering the GreetSomeone Workflow
+    result = await replayer.replay_workflow(workflow_history)
+# replays the Workflow using the provided history and awaits the result    
+    payload = result.history.events[-1].workflow_execution_completed_event_attributes.result.payloads
+    result_data = payload[0].data.decode('utf-8')
+    print(f"Replayed Workflow Result: {result_data}")
+
+# Run the async function
+if __name__ == "__main__":
+    asyncio.run(replay_workflow())
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 28 ==============
+		Using Temporal’s built-in logging.
+#---------------------------------------Answer Start----------------------------------------------# 
+How to log from a Workflow?
+
+Send logs and errors to a logging service, so that when things go wrong, 
+you can see what happened.
+The SDK core uses WARN for its default logging level.
+You can log from a Workflow using Python's standard library, by importing the logging module logging.
+
+Step 1:
+Set your logging configuration to a level you want to expose logs to. 
+The following example sets the logging information level to INFO.
+logging.basicConfig(level=logging.INFO)
+
+Step 2:
+Then in your Workflow, set your logger and level on the Workflow. 
+The following example logs the Workflow.
+Eg :
+workflow.logger.info("Workflow input parameter: %s" % name)
+
+Let's create a simple activity for logging
+Every files are same as simple_activity except activity_workflow.py
+activity_workflow.py
+
+import logging
+from datetime import timedelta
+from temporalio import workflow
+from activity import greet_in_english
+logging.basicConfig(level=logging.INFO) # Configuring the logging system
+@workflow.defn
+class GreetingWorkflow:
+    @workflow.run
+    async def run(self, name: str) -> str:
+        workflow.logger.info(f"Received input parameter: {name}")
+        try:
+            workflow.logger.debug("Calling greet_in_english activity...")
+            greeting = await workflow.execute_activity(
+                greet_in_english,
+                name,
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+            workflow.logger.info(f"Received greeting: {greeting}")
+            return greeting
+        except Exception as e:
+            workflow.logger.error(f"An error occurred: {str(e)}")
+            raise
+#----------------------------------------Answer End-----------------------------------------------#
+5. Error Handling and Retry Policies:
+	Activity Retries:
+                          ============== Task 29 ==============
+		Configure retry policies: Max attempts, backoff intervals.
+#---------------------------------------Answer Start----------------------------------------------# 
+# Define activity options with a retry policy
+retry_policy = RetryPolicy(
+    retries=3,  # Maximum attempts
+    initial_interval=5,  # Initial retry interval in seconds
+    backoff_coefficient=2,  # Exponential backoff
+    maximum_interval=60  # Max delay between retries in seconds
+)
+
+# Using the activity options in the worker
+worker = Worker(
+    client=client,
+    task_queue="example-task-queue",
+    activities=[unreliable_activity],
+    retry_policy=retry_policy
+)
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 30 ==============
+		Handle failures gracefully within workflows and activities.
+#---------------------------------------Answer Start----------------------------------------------# 
+
+How to Gracefully Handle Errors in Temporal
+    1) Use Retry Policies: Define retry policies for activities or workflows to handle transient errors automatically.
+    2) Catch and Handle Exceptions: In your workflow code, you can catch exceptions and either:
+        -->Log the error.
+        -->Retry the activity or workflow.
+        -->Fail gracefully or provide fallback mechanisms.
+    3) Set Timeout Values: Set appropriate timeouts for activities and workflows to avoid hanging operations.
+    4) Define Custom Error Handling: For specific errors, you may want to handle them in a custom way, such as sending a notification, storing error details in a database, or adjusting your retry policy dynamically.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 31 ==============
+	Workflow Timeouts:
+		Different timeout types: Execution timeout, schedule-to-close, etc.
+#---------------------------------------Answer Start----------------------------------------------# 
+Types of Timeouts in Temporal
+A Workflow can detect different kinds of Activity Execution failures through the following timeouts:
+
+    1) Schedule-To-Start Timeout
+    2) Start-To-Close Timeout
+    3) Schedule-To-Close Timeout
+    4) Activity Heartbeats
+
+1) Schedule-To-Start Timeout
+What is a Schedule-To-Start Timeout in Temporal?
+A Schedule-To-Start Timeout is the maximum amount of time that is allowed from when an Activity Task is scheduled (that is, placed in a Task Queue) to when a Worker starts (that is, picks up from the Task Queue) that Activity Task. In other words, it's a limit for how long an Activity Task can be enqueued.
+The moment that the Task is picked by the Worker, from the Task Queue, is considered to be the start of the Activity Task Execution for the purposes of the Schedule-To-Start Timeout and associated metrics. This definition of "Start" avoids issues that a clock difference between the Temporal Service and a Worker might create.
+This timeout has two primary use cases:
+    *Detect whether an individual Worker has crashed.
+    *Detect whether the fleet of Workers polling the Task Queue is not able to keep up with the rate of Activity Tasks.
+The default Schedule-To-Start Timeout is ∞ (infinity).
+
+2) Start-To-Close Timeout
+What is a Start-To-Close Timeout in Temporal?
+A Start-To-Close Timeout is the maximum time allowed for a single Activity Task Execution.
+The default Start-To-Close Timeout is the same as the default Schedule-To-Close Timeout.
+An Activity Execution must have either this timeout (Start-To-Close) or the Schedule-To-Close Timeout set. We recommend always setting this timeout; however, make sure that Start-To-Close Timeout is always set to be longer than the maximum possible time for the Activity Execution to complete. For long running Activity Executions, we recommend also using Activity Heartbeats and Heartbeat Timeouts.
+If this timeout is reached, the following actions occur:
+    *An ActivityTaskTimedOut Event is written to the Workflow Execution's mutable state.
+    *If a Retry Policy dictates a retry, the Temporal Service schedules another Activity Task.
+        The attempt count increments by 1 in the Workflow Execution's mutable state.
+        The Start-To-Close Timeout timer is reset.
+
+3) Schedule-To-Close Timeout
+What is a Schedule-To-Close Timeout in Temporal?
+A Schedule-To-Close Timeout is the maximum amount of time allowed for the overall Activity Execution, from when the first Activity Task is scheduled to when the last Activity Task, in the chain of Activity Tasks that make up the Activity Execution, reaches a Closed status.
+The default Schedule-To-Close Timeout is ∞ (infinity).
+An Activity Execution must have either this timeout (Schedule-To-Close) or Start-To-Close set. This timeout can be used to control the overall duration of an Activity Execution in the face of failures (repeated Activity Task Executions), without altering the Maximum Attempts field of the Retry Policy.
+
+Note:  strongly recommended setting a Start-To-Close Timeout.
+The Temporal Server doesn't detect failures when a Worker loses communication with the Server or crashes. Therefore, the Temporal Server relies on the Start-To-Close Timeout to force Activity retries.
+
+4) Activity Heartbeat
+What is an Activity Heartbeat in Temporal?
+An Activity Heartbeat is a ping from the Worker that is executing the Activity to the Temporal Service. Each ping informs the Temporal Service that the Activity Execution is making progress and the Worker has not crashed.
+Activity Heartbeats work in conjunction with a Heartbeat Timeout.
+Activity Heartbeats are implemented within the Activity Definition. Custom progress information can be included in the Heartbeat which can then be used by the Activity Execution should a retry occur.
+An Activity Heartbeat can be recorded as often as needed (e.g. once a minute or every loop iteration). It is often a good practice to Heartbeat on anything but the shortest Activity Function Execution. Temporal SDKs control the rate at which Heartbeats are sent to the Temporal Service.
+Heartbeating is not required from Local Activities, and does nothing.
+For long-running Activities, we recommend using a relatively short Heartbeat Timeout and a frequent Heartbeat. That way if a Worker fails it can be handled in a timely manner.
+A Heartbeat can include an application layer payload that can be used to save Activity Execution progress. If an Activity Task Execution times out due to a missed Heartbeat, the next Activity Task can access and continue with that payload.
+Activity Cancellations are delivered to Activities from the Temporal Service when they Heartbeat. Activities that don't Heartbeat can't receive a Cancellation. Heartbeat throttling may lead to Cancellation getting delivered later than expected.
+
+Simple Diagram:
+
+                     --|-- ActivityTaskScheduled  -|-                       --|--
+                       |                           |                          |
+                       |                           |--- Schedule-To-Start     |
+                       |                           |                          |
+Activity Execution ----|   ActivityTaskStarted    -|-   -|-                   |---- Schedule-To Close
+                       |                                 |                    |
+                       |                                 |--- Start-To-Close  |
+                       |                                 |                    |
+                     --|-- ActivityTaskCompleted        -|-                 --|--
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 32 ==============
+		Design patterns for long-running workflows with potential failures.
+#---------------------------------------Answer Start----------------------------------------------# 
+
+Long-running workflows often involve multiple retries, timeouts, and external dependencies, which can potentially fail. Temporal helps manage such workflows by offering patterns that make them more reliable, scalable, and fault-tolerant.
+Common Design Patterns
+
+    Retry Patterns:
+        Temporal allows configuring retries for failed activities or workflows.
+        You can define retry policies to handle transient failures (e.g., network failures, temporary outages of external systems).
+
+    Example Retry Policy:
+
+    retry_policy = RetryPolicy(
+        initial_interval=timedelta(seconds=5),
+        maximum_attempts=3
+    )
+
+    Saga Pattern:
+        This is used for workflows where each step could fail and requires compensation.
+        Temporal supports saga patterns with compensation logic to handle errors and rollback the state of a workflow.
+
+    Timeout Patterns:
+        Temporal allows setting different types of timeouts to ensure long-running workflows don’t hang indefinitely.
+        You can use Activity Timeout, Workflow Timeout, and Schedule-to-Close Timeouts to manage these scenarios.
+
+    Polling and Event-Driven Design:
+        Temporal supports signals, which allows workflows to wait for external events, such as a third-party service response or manual approval.
+
+#----------------------------------------Answer End-----------------------------------------------#
+
+                          ============== Task 33 ==============
+	Workflow Cancellation:
+		Implement cancellation: Handle clean-up tasks.
+#---------------------------------------Answer Start----------------------------------------------# 
+To cancel workflows, we can use cancel()
+
+cancel_client.py
+
+import asyncio
+from temporalio.client import Client
+async def cancel_workflow():
+    client = await Client.connect("localhost:7233")  # Adjust for your server
+    workflow_id = "greeting-workflow"
+    try:
+        await client.get_workflow_handle(workflow_id).cancel()
+        print(f"Cancellation request has been sent to Workflow {workflow_id}")
+    except Exception as e:
+        print(f"Error while canceling workflow: {e}")
+asyncio.run(cancel_workflow())
+
+#----------------------------------------Answer End-----------------------------------------------#
+ 
+                          ============== Task 34 ==============
+		Cancellation scopes: Managing specific parts of a workflow.
+#---------------------------------------Answer Start----------------------------------------------# 
+
+What is cancellation scope?
+A cancellation scope allows you to define a specific region within a workflow where cancellations 
+can occur independently. This means that when a cancellation is triggered within a scope, 
+only the activities or workflows within that scope will be canceled, while the rest of the 
+workflow can continue executing normally.
+
+Scope is not available in python however we can implement a similar functionality.
+
+activity1_handle = workflow.start_activity(
+            your_name,
+            args=(name,age),
+            start_to_close_timeout=timedelta(seconds=5),
+            )
+            if not re.match("^[A-Za-z]+$", name):
+                print(f"There is a special character in your name. It is invalid.")
+                activity1_handle.cancel()
+                print(f"So the activity 1 is cancelled")
+
+#----------------------------------------Answer End-----------------------------------------------#
+6. Temporal Cloud and Production Setup:
+	Deploy Temporal Server:
+		Install Temporal on Kubernetes or Docker.
+		Configure persistence: Set up databases for Temporal storage.
+	Using Temporal Cloud:
+		Differences from self-hosted Temporal.
+		Set up namespaces and configure workers.
+		Monitoring and Metrics:
+		Integrate with Prometheus or Grafana.
+		Enable Temporal’s built-in metrics.
+
+7. Temporal CLI and Debugging:
+	Basic tctl Commands:
+	List workflows, activities, and task queues.
+	View workflow history: Understand state transitions.
+	Advanced tctl Usage:
+	Terminate or signal workflows.
+	Replay workflows: Debugging with history.

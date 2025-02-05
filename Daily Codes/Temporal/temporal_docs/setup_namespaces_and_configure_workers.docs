@@ -1,0 +1,136 @@
+Set Up Namespaces and Configure Workers
+1. Introduction to Temporal Namespaces
+
+In Temporal, a namespace is a way to logically separate different sets of workflows, activities, and task queues within the Temporal service. Namespaces allow you to manage and organize workflows in a multi-tenant system, providing isolation and scalability for different applications or teams. Each namespace has its own workflows, activities, and task queues, which are independent of other namespaces.
+
+Namespaces are crucial for organizing large and complex Temporal environments, especially when different applications or teams are using the same Temporal infrastructure.
+
+This document outlines how to set up namespaces in Temporal and configure workers to interact with them effectively.
+2. Temporal Namespaces: Key Concepts
+
+    Namespaces: Logical containers for organizing workflows and activities. They allow Temporal to group workflows and activities based on business domains, teams, or environments (e.g., production, staging).
+    Namespace Definition: When defining a workflow or activity, you must specify the namespace under which it should run. Each namespace has unique configurations and can have its own persistence and task queue settings.
+    Default Namespace: If you don’t explicitly specify a namespace when interacting with Temporal, the default namespace (default) is used.
+    Namespace Configuration: Each namespace can have its own set of configuration options, including the retention period for workflow histories, workflow task timeouts, and more.
+
+3. Setting Up Temporal Namespaces
+
+Namespaces are created and managed via the Temporal CLI tool (temporal), which replaces the deprecated tctl tool. Here’s how to set up namespaces using the temporal CLI:
+Using the temporal CLI Tool
+
+    List Existing Namespaces:
+
+    Before creating a new namespace, you can list the existing namespaces:
+
+temporal namespace list
+
+Create a New Namespace:
+
+To create a new namespace, use the temporal command:
+
+temporal namespace register --name my-namespace --description "My Temporal Namespace" --ownerEmail "owner@example.com"
+
+    --name: The name of the namespace.
+    --description: A brief description of the namespace.
+    --ownerEmail: The email address of the namespace owner.
+
+Set Namespace Configurations:
+
+Temporal allows you to configure settings such as the retention period for workflow histories when registering a namespace:
+
+temporal namespace register --name my-namespace --workflowRetentionPeriod 72h
+
+This command sets the workflow history retention period for the namespace to 72 hours.
+
+Check Namespace Details:
+
+To view detailed information about a specific namespace, use:
+
+    temporal namespace describe --name my-namespace
+
+4. Configuring Workers
+
+Temporal workers are responsible for executing workflows and activities. Workers listen to task queues and pull tasks for execution. Each worker must be configured to interact with specific namespaces, ensuring that workflows and activities are executed in the right context.
+Steps to Set Up Workers
+
+    Install Temporal SDK:
+
+    Ensure that you have the Temporal SDK installed for your programming language (Python, Go, Java, etc.).
+
+    For Python, you can install the Temporal Python SDK with:
+
+pip install temporalio
+
+Define a Worker in Code:
+
+You need to define a worker in your code that will connect to the Temporal service and poll for tasks. Here is an example using Python:
+
+from temporalio.client import Client
+from temporalio.worker import Worker
+from temporalio.workflow import WorkflowClient
+from temporalio.activity import Activity
+
+async def main():
+    client = await Client.connect("localhost:7233")
+    worker = Worker(client, task_queue="my-task-queue", namespace="my-namespace")
+    
+    # Start the worker to process tasks
+    await worker.run()
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+
+In this example:
+
+    task_queue: Specifies the task queue the worker listens to.
+    namespace: Specifies the namespace to use for workflow execution.
+
+Register Activities:
+
+The worker must also be registered with the activities and workflows it will execute. This is done by defining activities and registering them with the worker:
+
+from temporalio import activity
+
+@activity.defn
+async def my_activity():
+    return "Activity Result"
+
+# Register activity with the worker
+worker.register_activity_implementation(my_activity)
+
+Start the Worker:
+
+After registering the worker with the necessary workflows and activities, you can start it using:
+
+    await worker.run()
+
+    The worker will continuously poll the task queue and execute workflows/activities as they arrive.
+
+    Multiple Workers:
+
+    You can scale the number of workers for a given task queue. By starting multiple worker instances, you can horizontally scale the execution of tasks, allowing for better distribution of load.
+
+5. Best Practices for Worker Configuration
+
+To ensure your Temporal workers are configured efficiently, consider the following best practices:
+
+    Use Separate Task Queues: For different types of workflows or activities, it is often beneficial to use separate task queues. This helps isolate workloads and allows for better scaling and prioritization.
+
+    Worker Scalability: Scale your workers horizontally by running multiple instances of the same worker. Temporal will automatically distribute the load among the workers in the task queue.
+
+    Graceful Shutdown: Ensure that workers are shut down gracefully without interrupting running workflows. Temporal provides methods to handle graceful shutdowns. For example:
+
+    await worker.stop()
+
+    Activity Timeouts and Retries: When configuring workers, ensure that activities have appropriate timeouts and retry policies to handle failures and retries automatically.
+
+    Error Handling: Implement error handling in your worker logic to capture and handle unexpected failures or exceptions in workflows and activities.
+
+    Monitoring and Logging: Make sure your workers are configured to log relevant information, such as workflow execution status, errors, and other key metrics. This is crucial for troubleshooting and monitoring worker performance.
+
+6. Conclusion
+
+Namespaces provide a logical separation of workflows and activities, allowing for better organization and isolation in a Temporal environment. Configuring workers involves connecting them to task queues and namespaces, ensuring that they execute workflows and activities properly.
+
+When setting up workers, it is essential to scale them appropriately, handle errors, and configure timeouts and retries for activities. By following best practices for worker configuration, you can ensure that your Temporal system is robust and scalable.

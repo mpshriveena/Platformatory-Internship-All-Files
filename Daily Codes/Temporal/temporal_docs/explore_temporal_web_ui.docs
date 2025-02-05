@@ -1,0 +1,88 @@
+Task 6: Explore the Temporal Web UI
+
+The Temporal Web UI is a graphical user interface that provides a convenient way to 
+visualize and interact with workflows, manage task queues, and troubleshoot issues. 
+It is especially useful for developers and operators who need to monitor, query, 
+and replay workflows without relying entirely on the command-line interface.
+
+Accessing Temporal Web UI
+If running in docker
+http://localhost:8080
+If running locally
+http://localhost:8233
+
+Things we can do in Temporal UI
+1) Workflow List and Filtering
+2) Workflow Details
+3) Workflow History and State
+4) Searching and Querying
+5) Monitoring Task Queues
+6) Workflow Termination and Cancellation
+
+The main Workflows page displays a table of recent Workflow Executions. The Web UI displays a maximum of 1,000 Workflow Executions.
+Users can list Workflow Executions by any of the following:
+    Status
+    Workflow ID
+    Workflow Type
+    Start time
+    End time
+    A List Filter
+
+For start time and end time, users can set their preferred date and time format as one of the following:
+    UTC
+    Local
+    Relative
+
+Select a Workflow Execution to view the Workflow Execution's History, Workers, and pending Activities.
+
+History
+This is a view of the Events and Event fields within the Workflow Execution. Approximately 40 different Events can appear in a Workflow Execution's Event History.
+The top of the page lists the following execution metadata:
+    Workflow Type
+    Run ID
+    Start Time and Close Time
+    Task Queue
+    Parent and Parent ID
+    State Transitions
+
+The Input and Results section displays the function arguments and return values for debugging purposes. Results are not available until the Workflow finishes.
+The Recent Events tab has the following views:
+    Timeline: A chronological or reverse-chronological order of events with a summary. Clicking into an Event displays all details for that Event. Clicking “Expand all” displays all Event details. Similarly, clicking “Collapse all” collapses the table and displays only the summary.
+    Compact: A logical grouping of Activities, Signals and Timers.
+    JSON: The full JSON code for the workflow.
+
+Download Event History
+The entire Workflow Execution Event History, in JSON format, can be downloaded from this section.
+
+Terminate Workflow
+Workflow Executions can be Terminated directly from the UI. A custom note can be logged from the UI when that happens.
+
+Workers
+Displays the Workers currently polling on the Workflow Task Queue with a count. If no Workers are polling, an error displays.
+
+Pending Activities
+Displays a summary of recently active and/or pending Activity Executions. Clicking a pending Activity directs the user to the Pending Activities tab to view details.
+
+Call Stack
+The screen shows the captured result from the __stack_trace Query. The Query is performed when the tab is selected. It works only if a Worker is running and available to return the call stack. The call stack shows each location where Workflow code is waiting.
+
+Queries
+Lists all Queries sent to the Workflow Execution.
+
+Schedules
+On Temporal Cloud and self-hosted Temporal Service Web UI, the Schedules page lists all the Schedules created on the selected Namespace.
+Click a Schedule to see details, such as configured frequency, start and end times, and recent and upcoming runs.
+
+Settings
+On Temporal Cloud, Settings is visible only to Account Owner and Global Admin roles.
+Click Settings to see and manage the list of users in your account and to set up integrations such as Observability and Audit logging.
+On a self-hosted Temporal Service, manage your users, metrics, and logging in your server configuration.
+
+Archive
+On a self-hosted Temporal Service, Archive shows Archived data of your Workflow Executions on the Namespace.
+To see data in your self-hosted Temporal Service, you must have Archival set up and configured.
+For information and details on the Archive feature in Temporal Cloud, contact your Temporal representative.
+
+Codec Server
+The Web UI can use a Codec Server with a custom Data Converter to decode inputs and return values. For details, see Securing your data.
+The UI supports a Codec Server endpoint. For details on setting the Codec Server endpoint, see Codec Server setup.

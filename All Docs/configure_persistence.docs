@@ -1,0 +1,186 @@
+Configure Persistence: Set Up Databases for Temporal Storage
+1. Introduction to Temporal Persistence
+
+Temporal workflows and activities generate a significant amount of state information during execution, which must be persisted reliably. Temporal uses a persistence layer to store workflow history, task queues, and other critical data. The persistence layer ensures that workflows are resilient to failures and can be resumed from the last known state if a failure occurs.
+
+In this document, we will cover how to configure Temporal to use different databases for persistence, such as Cassandra, MySQL, and PostgreSQL. We will discuss how to set up the persistence layer, the database requirements, and configuration steps to integrate Temporal with these databases.
+2. Temporal Database Options
+
+Temporal supports multiple database engines for persistence. The supported options are:
+
+    Cassandra: A distributed NoSQL database that is widely used with Temporal. It is the default persistence option when using Temporal.
+    MySQL: A relational database system that can be used for persistence, suitable for smaller-scale environments.
+    PostgreSQL: Another relational database supported by Temporal, ideal for PostgreSQL-based environments.
+
+Each database type requires specific setup steps to ensure Temporal functions correctly.
+3. Configuring Cassandra for Temporal Persistence
+
+Cassandra is the default and most common persistence option for Temporal. To use Cassandra with Temporal, you need to ensure that Cassandra is running and properly configured.
+Steps to Configure Cassandra for Temporal
+
+    Install Cassandra
+
+    If you are using Docker, Cassandra can be started as part of your Temporal Docker setup (as discussed in Document 35). If running Cassandra separately, make sure it is set up and running. You can install Cassandra by following the official installation guide for your platform.
+
+    For Docker-based Cassandra setup, you can add this to your docker-compose.yml file:
+
+cassandra:
+  image: cassandra:3.11
+  container_name: cassandra
+  ports:
+    - "9042:9042"
+  environment:
+    - CASSANDRA_CLUSTER_NAME=temporal
+    - CASSANDRA_DC=dc1
+    - CASSANDRA_RACK=rack1
+
+Modify Temporal Configuration for Cassandra
+
+Temporal’s persistence configuration is defined in the config section. The persistence backend for Cassandra can be configured in the docker-compose.yml or the Temporal server’s configuration file (temporal.yaml).
+
+In the configuration file, the Cassandra settings should look like this:
+
+persistence:
+  defaultStore: cassandra
+  visibilityStore: cassandra
+  datastores:
+    cassandra:
+      pluginName: cassandra
+      cluster:
+        hosts: ["cassandra"]
+        port: 9042
+      keyspace: temporal
+
+    hosts: The address of the Cassandra cluster (default is localhost for local setups).
+    keyspace: The keyspace where Temporal will store workflow history and other data. This can be customized based on your requirements.
+
+Verify Cassandra Connection
+
+Ensure that Cassandra is up and running. You can check Cassandra logs for any connection issues:
+
+docker logs cassandra
+
+Create Cassandra Keyspace for Temporal
+
+Before starting Temporal, ensure that the necessary keyspace exists. Temporal provides a utility to create the necessary keyspace and tables.
+
+You can create the keyspace and tables using the following commands:
+
+docker exec -it cassandra cqlsh
+
+Then run:
+
+    CREATE KEYSPACE IF NOT EXISTS temporal WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};
+
+    After this, Temporal will automatically create the necessary tables when it starts up.
+
+4. Configuring MySQL for Temporal Persistence
+
+If you prefer to use MySQL as the persistence layer, Temporal supports it as well. MySQL is ideal for smaller environments or where you already use MySQL.
+Steps to Configure MySQL for Temporal
+
+    Install MySQL
+        You can install MySQL on your machine or use a Docker container to set up MySQL.
+        Make sure MySQL is running and accessible by Temporal.
+
+    Modify Temporal Configuration for MySQL
+
+    In your Temporal configuration file (temporal.yaml), specify MySQL as the persistence store:
+
+persistence:
+  defaultStore: mysql
+  visibilityStore: mysql
+  datastores:
+    mysql:
+      pluginName: mysql
+      mysql:
+        user: root
+        password: root
+        host: localhost
+        port: 3306
+        database: temporal
+
+    user: The username for your MySQL instance.
+    password: The password for the user.
+    database: The database used by Temporal to store workflow history.
+
+Create the MySQL Database
+
+Before starting Temporal, make sure that the temporal database exists. You can create the database using the following commands:
+
+mysql -u root -p
+
+Then create the database:
+
+CREATE DATABASE temporal;
+
+Install MySQL Schema
+
+Temporal requires specific tables and schemas. You can apply the schema using the temporal-sql-tool:
+
+    ./temporal-sql-tool --db mysql --user root --password root --host localhost --port 3306 --database temporal
+
+    Verify MySQL Connection
+
+    Ensure that the MySQL server is accessible and that the temporal database is created and configured properly.
+
+5. Configuring PostgreSQL for Temporal Persistence
+
+PostgreSQL is another supported relational database for Temporal. Like MySQL, it is suitable for smaller setups or where PostgreSQL is already being used in the environment.
+Steps to Configure PostgreSQL for Temporal
+
+    Install PostgreSQL
+
+    You can install PostgreSQL on your machine or use Docker to set it up.
+
+    Modify Temporal Configuration for PostgreSQL
+
+    In your Temporal configuration file (temporal.yaml), configure PostgreSQL as the persistence backend:
+
+persistence:
+  defaultStore: postgres
+  visibilityStore: postgres
+  datastores:
+    postgres:
+      pluginName: postgres
+      postgres:
+        user: temporal
+        password: temporalpassword
+        host: localhost
+        port: 5432
+        database: temporal
+
+    user: The PostgreSQL username.
+    password: The PostgreSQL password.
+    database: The database used for storing Temporal’s data.
+
+Create PostgreSQL Database
+
+You need to create the temporal database before Temporal can use it:
+
+psql -U postgres
+
+Then create the database:
+
+CREATE DATABASE temporal;
+
+Install PostgreSQL Schema
+
+Apply the necessary schema for Temporal:
+
+    ./temporal-sql-tool --db postgres --user temporal --password temporalpassword --host localhost --port 5432 --database temporal
+
+    Verify PostgreSQL Connection
+
+    Ensure that PostgreSQL is running and the temporal database is accessible.
+
+6. Verifying the Persistence Setup
+
+Once Temporal is configured with the persistence layer (whether Cassandra, MySQL, or PostgreSQL), verify that the Temporal Server can connect to the database and store workflow history.
+
+    Use the Temporal Web UI to check if workflows and activities are being correctly recorded.
+    You can also query the database directly to see if tables and data are being populated.
+
+7. Conclusion
+
+Temporal's persistence layer is critical for ensuring that workflows are durable, even in the case of failures. By configuring Cassandra, MySQL, or PostgreSQL as the persistence store, you ensure that your Temporal workflows can reliably store and retrieve data. Whether you're using Docker or Kubernetes for deployment, setting up the persistence layer is straightforward with the provided configuration options.

@@ -1,0 +1,4 @@
+openssl x509 -in ca-cert.pem -text -noout
+keytool -list -v -keystore kafka.server.keystore.jks
+keytool -list -v -keystore kafka.server.truststore.jks
+

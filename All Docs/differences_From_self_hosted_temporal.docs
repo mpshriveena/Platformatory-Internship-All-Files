@@ -1,0 +1,86 @@
+Differences from Self-Hosted Temporal
+1. Introduction
+
+When deploying Temporal, there are two main options for hosting: self-hosted Temporal and managed Temporal. Each option has its own set of trade-offs, depending on the requirements of the organization. This document outlines the key differences between self-hosted Temporal and using Temporal Cloud (the managed version of Temporal), helping you choose the most appropriate option for your use case.
+2. Self-Hosted Temporal
+
+Self-hosted Temporal refers to the practice of setting up and managing your own Temporal server, persistence layer, and worker environments. It gives you full control over the Temporal deployment, but also requires you to handle the operational complexities and maintenance.
+Key Features of Self-Hosted Temporal
+
+    Full Control: You have full control over the setup and configuration of your Temporal instance, including the Temporal server, database (e.g., Cassandra, MySQL, PostgreSQL), and worker environments.
+    Customization: It allows for complete customization to fit your specific infrastructure, resource management, and security policies.
+    Cost Efficiency: If your organization already has the necessary infrastructure (e.g., Kubernetes, Docker), self-hosting can be more cost-effective in the long run, especially at scale.
+    Maintenance Responsibility: The operational burden of managing upgrades, scaling, and ensuring high availability falls on your team. You are responsible for monitoring, troubleshooting, and handling failures.
+    Infrastructure Flexibility: You can run Temporal in a variety of environments, whether on-premise, in private clouds, or in public cloud environments like AWS, GCP, or Azure.
+
+Key Considerations
+
+    Operational Complexity: Setting up Temporal and its dependencies, such as databases and messaging queues, can be complex and requires experience with distributed systems.
+    Scaling: Scaling Temporal in a self-hosted environment can be more challenging, especially as the number of workflows and activities increases. Properly managing clusters of workers and ensuring load balancing requires careful planning.
+    High Availability: Ensuring that Temporal is highly available and fault-tolerant in your setup is your responsibility. This might involve setting up redundant systems, monitoring, and failover strategies.
+
+Self-Hosted Setup Components
+
+    Temporal Server: The core service that runs workflows and activities.
+    Persistence Layer: A database such as Cassandra, MySQL, or PostgreSQL for storing workflow history and state.
+    Workers: These are the components that execute workflows and activities.
+    Task Queues: Task queues are used by workers to pull tasks and execute them.
+
+3. Managed Temporal (Temporal Cloud)
+
+Managed Temporal refers to using Temporal Cloud, which is the fully managed service offered by Temporal.io. It removes the operational complexities of running Temporal by providing a cloud-based solution that handles all the infrastructure and maintenance work for you.
+Key Features of Temporal Cloud
+
+    Fully Managed: Temporal Cloud handles all aspects of deployment, maintenance, scaling, and monitoring. You don’t need to worry about provisioning infrastructure or dealing with upgrades and patches.
+    Scalability: Temporal Cloud is designed to scale horizontally to handle increased workloads seamlessly. It abstracts away the complexity of scaling and ensures that you only pay for what you use.
+    Reliability: Temporal Cloud is backed by the expertise of the Temporal team and provides built-in high availability, redundancy, and disaster recovery. You don't need to worry about ensuring that your system stays up and running.
+    Out-of-the-Box Security: Temporal Cloud provides secure, managed infrastructure with automatic encryption, authentication, and other security measures. This can save time compared to setting up your own security configurations in a self-hosted setup.
+    Global Availability: Temporal Cloud is available in multiple regions and provides multi-region support to ensure high availability and low-latency access for geographically distributed applications.
+
+Key Considerations
+
+    Less Control: Since Temporal Cloud is a managed service, you do not have full control over the underlying infrastructure or the ability to customize certain aspects of the setup.
+    Cost: Managed Temporal can be more expensive in the long run, especially for high-traffic or resource-intensive applications. Pricing is typically based on usage, so costs can scale as your needs grow.
+    Vendor Lock-In: Temporal Cloud ties you to the service provider, making it harder to migrate away if your requirements change or if you decide to switch to a different solution.
+
+Managed Temporal Setup Components
+
+    Temporal Cloud Server: The Temporal Cloud server is managed by Temporal.io. You connect to it via the Temporal SDK and API.
+    Persistence Layer: Temporal Cloud uses a highly available, distributed database as part of its offering, abstracting away the need to manage your own database.
+    Workers: Similar to self-hosted Temporal, workers execute workflows and activities in the cloud environment. However, Temporal Cloud abstracts away the configuration of workers.
+    Task Queues: Managed Temporal handles the setup of task queues for you, ensuring that tasks are distributed to workers efficiently.
+
+4. Key Differences: Self-Hosted vs. Managed Temporal
+Feature	Self-Hosted Temporal	Managed Temporal (Cloud)
+Control	Full control over deployment, configuration, and infrastructure.	No direct control; Temporal manages everything.
+Maintenance	Must handle upgrades, patches, and operational maintenance.	Managed by Temporal.io, including upgrades and patches.
+Scalability	Manual scaling of servers and resources.	Automatic scaling based on usage.
+Reliability	You must ensure high availability and redundancy.	High availability and disaster recovery are built-in.
+Cost	Potentially more cost-effective for large, stable workloads.	Higher cost due to usage-based pricing.
+Customization	Full customization options for infrastructure, databases, and setup.	Limited customization; Temporal Cloud provides a standardized experience.
+Security	Must configure and manage security, encryption, and user authentication.	Built-in security and encryption.
+Global Availability	Depends on your infrastructure; must configure for multiple regions.	Multi-region support for global distribution.
+Operational Complexity	High operational burden, requiring expertise in distributed systems.	Low operational complexity with fully managed services.
+5. When to Choose Self-Hosted Temporal
+
+You should consider using a self-hosted Temporal setup if:
+
+    You have a dedicated infrastructure team and experience managing distributed systems.
+    You require full control over your Temporal environment and customization for specific needs.
+    Your team is capable of handling the operational complexities of scaling, high availability, and database management.
+    You prefer to manage costs at scale and have the ability to optimize infrastructure based on your workload.
+
+6. When to Choose Managed Temporal (Temporal Cloud)
+
+Managed Temporal (Temporal Cloud) is ideal if:
+
+    You prefer to offload infrastructure and operational management to focus on your core application.
+    You need to scale quickly and easily without worrying about infrastructure complexity.
+    You need a highly reliable, fault-tolerant solution without the need to manually manage backups or disaster recovery.
+    Your team doesn’t want to manage the overhead of setting up and maintaining a Temporal infrastructure.
+
+7. Conclusion
+
+The choice between self-hosted Temporal and managed Temporal (Temporal Cloud) depends on your team’s expertise, infrastructure, and business requirements. If you need full control and customization and are prepared to manage the operational overhead, self-hosted Temporal may be the best option. On the other hand, if you want a fully managed, scalable, and reliable solution with minimal operational complexity, Temporal Cloud is the way to go.
+
+Both options provide powerful features for managing and running workflows, so the decision ultimately depends on your preference for control vs. ease of use.

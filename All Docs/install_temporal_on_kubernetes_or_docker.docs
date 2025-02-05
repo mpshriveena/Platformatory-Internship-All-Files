@@ -1,0 +1,127 @@
+Install Temporal on Kubernetes or Docker
+1. Introduction
+
+Temporal can be installed in multiple environments, including Docker and Kubernetes, to facilitate easy deployment, scalability, and management of workflows and activities. In this document, we will focus on the steps involved in installing and configuring Temporal on Kubernetes and Docker, ensuring you can run and scale Temporal workflows efficiently in a containerized environment.
+
+Temporal consists of several components, such as the Temporal Server, its persistence layer, and workers that execute workflows and activities. We'll walk you through setting up these components in both Docker and Kubernetes environments.
+2. Installing Temporal on Docker
+
+Docker is a popular containerization platform, and Temporal provides official Docker images for running its services locally or in a production environment. The following guide will walk you through setting up Temporal on Docker using the provided docker-compose configuration.
+Prerequisites for Docker Installation
+
+    Install Docker on your system (follow Docker's installation guide).
+    Ensure Docker Compose is installed. Docker Compose helps manage multi-container Docker applications (follow Docker Compose's installation guide).
+
+Steps for Installing Temporal on Docker
+
+    Clone the Temporal Repository Temporal provides a pre-configured docker-compose.yml file to set up its services. To begin, clone the Temporal repository.
+
+git clone https://github.com/temporalio/temporal.git
+cd temporal
+
+Set Up Docker Compose
+
+In the repository, you'll find a folder docker/docker-compose/ with the necessary configuration to run Temporal locally. Change to this directory:
+
+cd docker/docker-compose
+
+Start Temporal Server with Docker Compose
+
+Use the following command to start the Temporal Server and its dependencies (e.g., Cassandra, Elasticsearch, or MySQL):
+
+docker-compose up
+
+This command will pull the necessary Docker images (if not already available) and start Temporal, along with its dependencies, in containers.
+
+Verify Installation
+
+Once Docker Compose has completed the startup, Temporal should be running. You can verify by accessing the Temporal Web UI (usually available at http://localhost:8088), or by using the tctl command to check the status of your Temporal server.
+
+tctl cluster describe
+
+Stop Temporal
+
+To stop the containers, run:
+
+    docker-compose down
+
+    This command stops and removes the containers.
+
+3. Installing Temporal on Kubernetes
+
+Kubernetes is a powerful platform for orchestrating containerized applications, and it provides greater scalability and management features compared to Docker. To install Temporal on Kubernetes, you can follow the official Temporal Helm chart, which simplifies deployment on Kubernetes clusters.
+Prerequisites for Kubernetes Installation
+
+    A working Kubernetes cluster. You can set up a local Kubernetes cluster using Minikube or use a cloud-based provider such as Google Kubernetes Engine (GKE) or Amazon EKS.
+    Helm is a package manager for Kubernetes. You can install Helm by following the installation guide.
+
+Steps for Installing Temporal on Kubernetes
+
+    Add the Temporal Helm Repository
+
+    Add the Temporal Helm repository to your Helm client:
+
+helm repo add temporal https://helm.temporal.io
+helm repo update
+
+Install Temporal with Helm
+
+Create a Kubernetes namespace (e.g., temporal) where Temporal will be deployed:
+
+kubectl create namespace temporal
+
+Install Temporal using Helm:
+
+helm install temporal temporal/temporal --namespace temporal
+
+This command will deploy the Temporal server, along with its dependencies, into the temporal namespace in your Kubernetes cluster.
+
+Verify Installation
+
+Once the installation is complete, you can verify that the Temporal server is running by checking the pods:
+
+kubectl get pods -n temporal
+
+You should see several pods running, including the Temporal server components and any persistence layer pods (e.g., Cassandra, Elasticsearch).
+
+Access Temporal Web UI
+
+To access the Temporal Web UI, you can set up port forwarding from your local machine to the Temporal UI service:
+
+kubectl port-forward svc/temporal-web 8088:8088 -n temporal
+
+After running this command, open your browser and navigate to http://localhost:8088 to access the Temporal Web UI.
+
+Manage Temporal with Helm
+
+    To check the status of your Temporal installation:
+
+helm status temporal -n temporal
+
+To upgrade Temporal to a newer version:
+
+helm upgrade temporal temporal/temporal --namespace temporal
+
+To uninstall Temporal:
+
+        helm uninstall temporal -n temporal
+
+4. Configuring Persistence for Temporal
+
+Temporal requires a persistence layer to store workflow state, events, and history. By default, the Docker and Kubernetes configurations use Cassandra as the database. However, you can also configure other databases, such as MySQL or PostgreSQL, depending on your requirements.
+Cassandra Configuration
+
+If you want to use Cassandra with Temporal, ensure that Cassandra is correctly configured in your docker-compose.yml or Helm chart values. Temporal will connect to the Cassandra service, which will handle all storage requirements.
+MySQL or PostgreSQL Configuration (Optional)
+
+To use MySQL or PostgreSQL instead of Cassandra, modify the docker-compose.yml or Helm chart values to specify the desired database. You'll need to ensure that your database is accessible to the Temporal Server.
+5. Scaling Temporal
+
+Temporal allows you to scale workers and server components horizontally in Kubernetes or Docker. You can increase the number of worker pods to distribute the load of activity execution and improve throughput. In Kubernetes, you can scale the Temporal worker deployment by modifying the number of replicas in the deployment configuration:
+
+kubectl scale deployment temporal-workers --replicas=5 -n temporal
+
+Similarly, you can scale Temporal Server components based on the load and traffic requirements.
+6. Conclusion
+
+Installing Temporal on Docker or Kubernetes provides a robust, scalable platform for running workflows. Docker is ideal for local development and testing, while Kubernetes is better suited for production environments where scalability, fault tolerance, and high availability are critical. By following the steps outlined in this document, you can successfully deploy and manage Temporal in both environments.

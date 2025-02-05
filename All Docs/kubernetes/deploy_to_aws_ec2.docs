@@ -1,0 +1,37 @@
+Deploying to AWS EC2 Instance
+
+What is EC2?
+EC2 is a service offered by AWS that allows us to spin up and manage own host machine
+
+Step 1:
+Create and launch, VPC and security group
+Step 2:
+Configure security groups to expose all required ports to www
+Step 3:
+Connect to instance(SSH), install docker and run container
+
+Step 1: Create and launch, VPC and security group
+Sign up an log in to the aws account. 
+Search for ec2 instance (virtual servers on cloud)
+Click Launch instance button
+Select 1st option
+Select t2.micro type
+Select default VPC network
+Click "Create new VPC"
+Click on "Review and Launch"
+Create an new key pair
+Give it a name. Click Download. You will be able to download only once.
+Wait of it to up and running
+
+Step 4: Connect to instance(SSH), install docker and run container
+Click connect and follow the steps to connect your local machine to this instance
+To install docker on the virtual machine, follow the following steps
+    sudo yum update -y
+    sudo yum -y install docker    
+    sudo service docker start     
+    sudo usermod -a -G docker ec2-user
+Make sure to log out + back in after running these commands.
+Once you logged back in, run this command:
+    sudo systemctl enable docker
+Thereafter, you can check whether Docker is available by running:
+    docker version

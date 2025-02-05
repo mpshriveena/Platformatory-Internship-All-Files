@@ -1,0 +1,91 @@
+                                            LDAP
+
+AD
+
+* AD stands for Active Directory
+* Used to provide authentication, group and user management.
+
+LDAP
+
+* LDAP stands for Lightweight Directory Access Protocol
+* LDAP is a mature, flexible, and well supported standards-based mechanism for interacting with directory servers. 
+* It’s often used for authentication and storing information about users, groups, and applications
+* An LDAP directory server is a fairly general-purpose data store.
+* It is very lightweight and so much secure
+* It is used to manage and access the directory services
+* It runs over TCP and IP protocol
+* It is open and cross platform
+
+LDAP vs AD
+
+* LDAP is a way of speaking to Active Directory and Active Directory is a directory services database.
+
+How LDAP works?
+
+* LDAP follows client-server model
+
+
+            1                      2                  3
+    LDAP ready system ------->   LDAP  ------->      LDAP
+      / Application             server <-------    Database
+      (Client side)
+
+1) That requests data from the associate LDAP database
+2) Once we enter the credentials, it goes to LDAP server
+3) LDAP server is associated with LDAP database so it will go and try to authenticate.
+4) After that, it gives the response.
+
+What happens actually?
+
+* For example, there is a user,
+* This user is currently holding user ID and password
+* When we enter user id and password from the client side, it will go to the LDAP server.
+* After that, LDAP server will talk to the LDAP database and it will verify if the user is valid or not
+
+How does LDAP authentication between client and server work?
+
+* From client side, we enter username and password
+* After that it will go to our services or API
+* After that, it will call the LDAP server.
+* LDAP server then talks to the database, and once the database found that user is not authenticated, it will send the respobse back that the user is not valid.
+* In case that credentials matches, it will authorize them and gives access to the services.
+
+Why we need LDAP?
+
+* Big companies
+* Many roles, sub groups
+* Write or update once and read multiple times.
+
+LDAP Structure
+
+* Follows tree hierarchy
+
+                                           root
+                                            |
+                                            |
+                                            V
+                                        dc=example
+                                    (domain component)
+                                            |
+                                            |
+                                --------------------------
+                                |                        |
+                                V                        V
+                             ou=user                  ou=group
+                                |
+                                V
+                             cn=john
+
+* root will always be the top one
+* dc is top of the tree
+* use DNS to define namespace
+* ou stands for organization unit
+* next is cn which stands for common name.
+* cn contains the name of users
+* one user can belong to multiple groups
+* For that, we have to give attribute name
+
+Types of authentication
+
+* Simple
+* SASL

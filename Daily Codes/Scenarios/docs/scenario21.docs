@@ -1,0 +1,36 @@
+http://localhost:9092
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: connect/172.20.0.11:8083
+
+control-center     | com.linecorp.armeria.client.UnprocessedRequestException: io.netty.channel.AbstractChannel$AnnotatedConnectException: finishConnect(..) failed: Connection refused: connect/172.20.0.11:8083
+
+kafka 1 server.properties
+
+confluent.metrics.reporter.bootstrap.servers=kafka1:9095,kafka2:9095,kafka3:9095
+confluent.metrics.reporter.security.protocol=SSL
+advertised.listeners=CLIENT://kafka1:9092,BROKER://kafka1:9093,TOKEN://kafka1:9094,USER://kafka1:9095
+advertised.listeners=CLIENT://kafka2:9092,BROKER://kafka2:9093,TOKEN://kafka2:9094,USER://kafka2:9095
+advertised.listeners=CLIENT://kafka3:9092,BROKER://kafka3:9093,TOKEN://kafka3:9094,USER://kafka3:9095
+
+listener.security.protocol.map=CLIENT:SASL_PLAINTEXT,BROKER:SSL,TOKEN:SASL_PLAINTEXT,USER:PLAINTEXT
+
+confluent.metrics.reporter.bootstrap.servers=kafka1:9093,kafka2:9093,kafka3:9093
+
+1) Both SSL no errors
+
+2)
+confluent.metrics.reporter.security.protocol=PLAINTEXT
+inter.broker.listener.name=BROKER
+(SSL)
+
+kafka2             | org.apache.kafka.common.errors.TopicAuthorizationException:
+ Topic authorization failed. this error and 
+ metric.reporters=io.confluent.metrics.reporter.ConfluentMetricsReporter
+
+3)
+confluent.metrics.reporter.security.protocol=PLAINTEXT
+inter.broker.listener.name=USER
+(PLAINTEXT)
+
+Caused by: java.util.concurrent.CompletionException: 
+org.apache.kafka.common.errors.TopicAuthorizationException: 
+Not authorized to access topics: [_confluent-metadata-auth]

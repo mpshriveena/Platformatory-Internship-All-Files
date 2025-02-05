@@ -1,0 +1,30 @@
+Kubernetes
+
+Containers run on pod
+Pod is the smallest possible unit in kubernetes world
+
+Proxy is tool to control network traffic
+
+Pod an Proxy will be present in worker node
+Worker node is just the computer or similar to that
+
+Master node controls every worker node
+Another remote machine which has control panel running on it
+
+All are comnnected to cloud provider
+
+Kubelet is the software running on the worker node that does the actual communication with the master node
+
+API Server
+scheduler
+kube controller Manager
+Cloud Controller and Manager
+
+Cluster
+Node
+Worker Node
+Master Node
+Podes
+Containers
+services
+ 

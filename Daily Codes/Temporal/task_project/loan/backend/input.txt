@@ -1,0 +1,62 @@
+{
+  "applicationId" : "354",
+  "applicantName": "M P Shri Veena",
+  "email": "mpshriveena@gmail.com",
+  "phone": 7845573332,
+  "loanAmount": 1000000,
+  "loanPurpose": "House"
+}
+{
+  "applicationId" : "9232",
+  "applicantName": "Divya",
+  "email": "divya@gmail.com",
+  "phone": 7586236541,
+  "loanAmount": 1000000,
+  "loanPurpose": "House"
+}
+
+sudo systemctl start confluent-zookeeper
+sudo systemctl status confluent-zookeeper
+sudo systemctl start confluent-kafka
+sudo systemctl status confluent-kafka
+cd /home/mpshriveena/Desktop/Platformatory/Daily\ Codes/Temporal/temporal-project/
+source ./env/bin/activate
+temporal server start-dev --db-filename temporal_data.db 
+cd ../task_project/loan/backend/
+source ./env/bin/activate
+python3 init.py
+python3 app.py
+python3 consumer.py 
+python3 register_activity.py
+sudo systemctl stop confluent-zookeeper
+sudo systemctl stop confluent-kafka
+
+cd /home/mpshriveena/Desktop/Platformatory/Daily Codes/Temporal/task_project/loan/loan_bpm
+docker-compose up --build
+docker-compose down --volumes
+
+
+temporal workflow signal \
+    --workflow-id "loan-workflow354" \
+    --name "manual_approval" \
+    --input '{"reviewerId": "ri115","approvalStatus": "approved","comments": "nice"}'
+
+temporal workflow signal \
+    --workflow-id "loan-workflow9232" \
+    --name "manual_approval" \
+    --input '{"reviewerId": "ri115","approvalStatus": "rejected","comments": "nice"}'
+
+temporal workflow signal --workflow-id "loan-workflow354" --name "e_signature"
+
+temporal workflow signal \
+    --workflow-id "loan-email-workflow354" \
+    --name "cancel_email_workflows" \
+    --input '{"loanId": "354","paymentDate": "30-12-2024","paymentStatus": "paidInFull"}'
+
+0 0 1 * *
+
+    Minute (0-59)
+    Hour (0-23)
+    Day of Month (1-31)
+    Month (1-12)
+    Day of Week (0-6)

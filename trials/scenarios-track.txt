@@ -1,0 +1,9 @@
+Scenarios Status
+
+Main - Completed
+Scenario 3 - Completed with document
+Scenario 9 - Completed with document
+Scenario 12 - Completed
+Scenerio 21 - Completed with document
+Scenario 1 . Doing now
+

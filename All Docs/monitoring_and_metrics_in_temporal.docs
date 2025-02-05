@@ -1,0 +1,135 @@
+Monitoring and Metrics in Temporal
+1. Introduction to Monitoring and Metrics in Temporal
+
+Monitoring and metrics are essential for tracking the health and performance of your Temporal system. Temporal provides built-in integrations for monitoring workflows, activities, and worker behavior. By collecting and analyzing these metrics, you can proactively manage your Temporal service, detect potential issues, and ensure smooth operations.
+
+This document explains how to integrate Temporal with monitoring tools like Prometheus and Grafana to visualize and alert on Temporal metrics.
+2. Temporal Built-In Metrics
+
+Temporal provides a rich set of metrics that track the performance and health of the system. These metrics can be used to monitor various aspects of Temporal, including workflow execution, activity completion, and worker performance.
+
+Some common Temporal metrics include:
+
+    Workflow Execution Metrics:
+        temporal_workflow_executions_started_total: Tracks the number of workflows that have started.
+        temporal_workflow_executions_completed_total: Tracks the number of workflows that have completed successfully.
+        temporal_workflow_executions_failed_total: Tracks the number of workflows that have failed.
+        temporal_workflow_executions_timed_out_total: Tracks the number of workflows that have timed out.
+
+    Activity Metrics:
+        temporal_activity_executions_started_total: Tracks the number of activity executions that have started.
+        temporal_activity_executions_completed_total: Tracks the number of activity executions that have completed successfully.
+        temporal_activity_executions_failed_total: Tracks the number of activity executions that have failed.
+        temporal_activity_executions_timed_out_total: Tracks the number of activity executions that have timed out.
+
+    Worker Metrics:
+        temporal_worker_task_queue_poll_count: Tracks the number of times a worker has polled a task queue.
+        temporal_worker_task_queue_poll_duration_seconds: Tracks the time spent by workers polling task queues.
+        temporal_worker_task_queue_poll_failed_total: Tracks the number of failed attempts to poll task queues.
+
+These metrics are exported by the Temporal service in a format compatible with Prometheus, making it easy to collect and analyze them using a time-series database.
+3. Integrating Temporal with Prometheus
+
+Prometheus is a popular open-source monitoring and alerting toolkit used for collecting and storing time-series data. Temporal exposes its metrics in a Prometheus-compatible format, making it easy to integrate with Prometheus.
+Steps to Integrate Temporal with Prometheus:
+
+    Configure Temporal to Export Metrics:
+
+    Temporal has built-in support for exporting metrics to Prometheus. To enable this, you need to configure Temporal’s metrics collector. You can enable it by modifying the temporal.yaml configuration file.
+
+    Add the following configuration to your Temporal server:
+
+metrics:
+  prometheus:
+    enabled: true
+    port: 9090
+
+    enabled: true: Ensures that Temporal exports metrics to Prometheus.
+    port: 9090: Specifies the port where the Prometheus metrics endpoint will be exposed.
+
+Start the Temporal Service:
+
+After modifying the configuration, restart your Temporal service for the changes to take effect.
+
+Configure Prometheus to Scrape Temporal Metrics:
+
+In the Prometheus configuration file (prometheus.yml), you need to specify that Prometheus should scrape metrics from the Temporal service. Add a job to the scrape_configs section:
+
+    scrape_configs:
+      - job_name: 'temporal'
+        static_configs:
+          - targets: ['localhost:9090']
+
+    Replace localhost:9090 with the appropriate host and port if your Temporal service is running elsewhere.
+
+    Restart Prometheus:
+
+    After updating the configuration, restart Prometheus to begin scraping metrics from Temporal.
+
+4. Integrating Temporal with Grafana
+
+Grafana is a powerful open-source platform for visualizing metrics from various sources, including Prometheus. By integrating Grafana with Prometheus, you can create dashboards to visualize Temporal metrics and monitor the health of your Temporal system.
+Steps to Integrate Temporal with Grafana:
+
+    Install Grafana:
+
+    If you don’t have Grafana installed, you can follow the installation instructions on the Grafana website.
+
+    Add Prometheus as a Data Source:
+
+    Once Grafana is installed, you need to add Prometheus as a data source:
+        Log in to Grafana (default username is admin, and password is admin).
+        In the left-hand menu, click on the gear icon (⚙️) for Settings.
+        Select Data Sources, then click Add Data Source.
+        Choose Prometheus from the list of available data sources.
+        In the HTTP section, set the URL to the address where Prometheus is running (e.g., http://localhost:9090).
+        Click Save & Test to verify the connection.
+
+    Create a Grafana Dashboard:
+
+    With Prometheus configured as a data source, you can now create dashboards to visualize Temporal metrics. To create a dashboard:
+        Click on the “+” icon in the left-hand menu and select Dashboard.
+        Click Add Query and select Prometheus as the data source.
+        Enter a metric query, such as temporal_workflow_executions_started_total, to see the number of workflows started.
+        Customize the visualization (e.g., graph, table, etc.) and save the dashboard.
+
+    Use Prebuilt Grafana Dashboards:
+
+    There are prebuilt Grafana dashboards available for Temporal. You can import them from the Grafana dashboards repository or share the dashboard JSON configuration with your team. These dashboards will give you ready-made views of Temporal’s metrics.
+
+5. Setting Up Alerts
+
+Alerts allow you to be notified when certain conditions are met, such as when the number of failed workflows exceeds a threshold or when a task queue is not being polled.
+Steps to Set Up Alerts in Prometheus:
+
+    Create an Alert Rule:
+
+    You can define alerting rules in Prometheus to monitor Temporal metrics. For example, you can set up an alert to trigger if there are too many failed workflows:
+
+groups:
+  - name: temporal-alerts
+    rules:
+      - alert: HighFailedWorkflows
+        expr: temporal_workflow_executions_failed_total > 100
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: "There have been more than 100 failed workflows in the last 5 minutes."
+
+Configure Alert Manager:
+
+Prometheus integrates with Alertmanager, which can handle alerts and send notifications via email, Slack, or other communication channels. Configure Alertmanager in the prometheus.yml configuration file:
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['localhost:9093']
+
+    Make sure that Alertmanager is installed and running on the specified port.
+
+6. Conclusion
+
+Monitoring and metrics are vital for maintaining the health and performance of your Temporal system. By integrating Temporal with tools like Prometheus and Grafana, you can easily collect, store, and visualize Temporal metrics.
+
+With the help of these tools, you can monitor key Temporal metrics such as workflow executions, activity performance, and worker health. Additionally, you can set up alerts to be notified of any issues and ensure that your Temporal system operates smoothly.

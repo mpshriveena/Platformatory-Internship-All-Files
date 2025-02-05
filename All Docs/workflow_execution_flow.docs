@@ -1,0 +1,151 @@
+Workflow Execution Flow: Steps, Decisions, and Retries
+1. Introduction to Workflow Execution Flow
+
+In Temporal, workflows are composed of a series of steps, decisions, and retries. These elements define the sequence of activities, the choices the workflow makes based on the results of those activities, and how Temporal handles failures. Understanding the workflow execution flow is crucial to designing workflows that are resilient, efficient, and maintainable.
+
+The workflow execution flow ensures that your workflows can:
+
+    Execute tasks in a sequence.
+    Make decisions based on external inputs or activity results.
+    Handle errors and retries in a robust manner.
+
+2. Workflow Steps
+
+A step in a Temporal workflow refers to a unit of work, such as an activity or a decision, that is executed during the workflow’s lifecycle. Workflows in Temporal are composed of a series of steps that define how tasks are orchestrated. Each step represents a transition from one part of the workflow to another.
+2.1. Types of Steps
+
+    Activity Execution: Calling an activity is the most common type of step. Activities are external tasks that perform work and return results.
+
+    Example:
+
+@workflow.defn
+async def order_workflow(order_id: int):
+    payment_status = await workflow.execute_activity(process_payment, order_id)
+    if payment_status == "SUCCESS":
+        await workflow.execute_activity(fulfill_order, order_id)
+    else:
+        await workflow.execute_activity(cancel_order, order_id)
+
+In this example, calling the process_payment activity is one step in the workflow, followed by decisions based on the result of that step.
+
+Decisions: Workflows can also make decisions based on activity results or external signals. This introduces conditional steps, allowing different actions to be taken depending on the context.
+
+Example:
+
+    @workflow.defn
+    async def decision_workflow(value: int):
+        if value > 0:
+            return "Positive"
+        else:
+            return "Negative"
+
+    Here, the workflow makes a decision about whether the value is positive or negative and acts accordingly.
+
+    Wait for External Events: A step can also involve waiting for external signals or events, such as the receipt of a signal or a timer firing.
+
+3. Workflow Decisions
+
+A decision is an instruction in the workflow that determines the next steps based on the current state. These decisions allow workflows to execute conditionally, creating branching logic within the workflow.
+3.1. Example of Decision Flow
+
+Consider a scenario where a workflow processes an order. After processing the payment, the workflow must decide whether to fulfill the order or cancel it based on the result.
+
+@workflow.defn
+async def process_order(order_id: int):
+    result = await workflow.execute_activity(process_payment, order_id)
+    
+    if result == "SUCCESS":
+        # Proceed with fulfilling the order
+        await workflow.execute_activity(fulfill_order, order_id)
+    else:
+        # Cancel the order if payment fails
+        await workflow.execute_activity(cancel_order, order_id)
+
+Here, the workflow makes a decision to proceed with fulfilling the order or canceling it based on the result of the process_payment activity.
+3.2. Conditional Logic in Workflows
+
+Temporal workflows can include more complex conditional logic. For instance, you might need to check the state of multiple activities or gather input from external systems before making a decision.
+
+@workflow.defn
+async def order_flow(order_id: int):
+    payment_status = await workflow.execute_activity(process_payment, order_id)
+    stock_status = await workflow.execute_activity(check_inventory, order_id)
+    
+    if payment_status == "SUCCESS" and stock_status == "IN_STOCK":
+        await workflow.execute_activity(fulfill_order, order_id)
+    else:
+        await workflow.execute_activity(cancel_order, order_id)
+
+Here, the workflow depends on the results of both the payment and inventory check activities to decide whether to fulfill the order.
+4. Handling Retries in Workflows
+
+One of the most important features of Temporal workflows is their built-in support for retries. Temporal automatically handles retries for activities that fail, and it allows you to define retry policies that govern how failures should be handled.
+4.1. Retry Policies
+
+A retry policy in Temporal is a set of rules that specify how and when to retry an activity or workflow. Some of the key aspects of a retry policy include:
+
+    Maximum Attempts: The maximum number of retry attempts for an activity.
+    Backoff Interval: The time between retry attempts. It can be exponential or fixed.
+    Retry Conditions: Whether to retry based on specific exceptions or error codes.
+
+4.2. Defining Retry Policies
+
+In Temporal, you can define retry policies for activities. Here’s an example of how you might define a retry policy for an activity:
+
+from temporalio import activity
+
+@activity.defn
+async def unreliable_activity():
+    # Simulate an activity that might fail
+    pass
+
+@workflow.defn
+async def workflow_with_retry():
+    result = await workflow.execute_activity(unreliable_activity, retry_policy={
+        "maximum_attempts": 5,
+        "initial_interval": "2s",
+        "backoff_coefficient": 2.0,
+    })
+
+In this example, the unreliable_activity will be retried up to 5 times, with an exponential backoff interval starting from 2 seconds.
+4.3. Automatic Retries for Failures
+
+If an activity fails, Temporal will automatically retry it based on the retry policy you define. This retry mechanism is seamless and ensures that workflows can recover from temporary failures without manual intervention.
+
+If all retry attempts fail, Temporal will report the activity as failed, and you can handle it in your workflow logic. For example, you might want to trigger an alert or take corrective action if all retries are exhausted.
+5. Workflow Execution Flow with Retries and Decisions
+
+Here is a more complex example that incorporates both decisions and retries:
+
+@workflow.defn
+async def order_workflow(order_id: int):
+    payment_result = await workflow.execute_activity(process_payment, order_id, retry_policy={
+        "maximum_attempts": 3,
+        "initial_interval": "2s",
+        "backoff_coefficient": 2.0,
+    })
+    
+    if payment_result == "SUCCESS":
+        stock_result = await workflow.execute_activity(check_inventory, order_id)
+        if stock_result == "IN_STOCK":
+            await workflow.execute_activity(fulfill_order, order_id)
+        else:
+            await workflow.execute_activity(cancel_order, order_id)
+    else:
+        await workflow.execute_activity(cancel_order, order_id)
+
+In this example:
+
+    The workflow first attempts to process the payment, retrying up to 3 times in case of failure.
+    After processing the payment, it checks inventory and either fulfills or cancels the order based on the stock status.
+    Each activity can have its own retry logic, making the workflow resilient to failures.
+
+6. Conclusion
+
+Understanding the workflow execution flow is critical for developing robust and fault-tolerant workflows in Temporal. By using steps, decisions, and retries, you can design workflows that are:
+
+    Asynchronous and non-blocking: Allowing for parallel execution and better resource utilization.
+    Fault-tolerant: Automatically handling failures with retries and compensating for errors.
+    Flexible and scalable: Enabling the handling of complex business logic with conditional branching and long-running tasks.
+
+Temporal’s rich workflow model ensures that complex business processes can be implemented in a simple yet highly reliable manner, even when handling large-scale operations across distributed systems.

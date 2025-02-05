@@ -1,0 +1,150 @@
+Kubernetes Installation
+
+1) Verify
+grep -E --color 'vmx|svm' /proc/cpuinfo
+
+2) Install and Set Up kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+The ouput of the above command should be kubectl: OK
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl version --client
+kubectl version --client --output=yaml
+
+3) Install Minikube
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+minikube start
+minikube stop
+minikube status
+minikube dashboard
+kubectl cluster-info
+
+4) Install Helm Chart
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+sudo apt-get install apt-transport-https --yes
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+helm version
+
+5) Install Temporal using Helm Chart
+cd Desktop/Platformatory/Daily\ Codes/Temporal/kubernetes/
+git clone https://github.com/temporalio/helm-charts.git
+cd helm-charts/charts/temporal/
+helm dependencies update
+minikube start --driver=docker
+helm install \
+    --repo https://go.temporal.io/helm-charts \
+    --set server.replicaCount=1 \
+    --set cassandra.config.cluster_size=1 \
+    --set elasticsearch.replicas=1 \
+    --set prometheus.enabled=false \
+    --set grafana.enabled=false \
+    temporaltest temporal \
+    --timeout 60m
+
+To verify that Temporal has started, run:
+kubectl --namespace=default get pods -l "app.kubernetes.io/instance=temporaltest"
+kubectl get pods
+kubectl port-forward services/temporaltest-web 8080:8080
+kubectl port-forward services/temporaltest-frontend-headless 7233:7233
+temporal operator namespace create --namespace="default" --global=false --history-archival-state="enabled" --retention="4d"
+
+========================================================================================================
+remove
+minikube start
+helm uninstall temporaltest
+sudo rm /usr/share/keyrings/helm.gpg
+sudo rm /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get remove --purge apt-transport-https
+sudo apt-get remove --purge helm
+sudo rm /usr/local/bin/minikube
+minikube stop
+minikube delete
+kubectl config delete-context minikube
+rm -rf ~/.kube/config
+sudo rm Desktop/Platformatory/Daily\ Codes/Temporal/kubernetes/helm-charts
+sudo rm kubectl kubectl.sha256
+
+minikube stop
+minikube delete
+minikube start --cpus 2 --memory 4096
+helm install \
+    --repo https://go.temporal.io/helm-charts \
+    --set server.replicaCount=1 \
+    --set cassandra.config.cluster_size=1 \
+    --set elasticsearch.replicas=1 \
+    --set prometheus.enabled=false \
+    --set grafana.enabled=false \
+    temporaltest temporal \
+    --timeout 60m
+kubectl --namespace=default get pods -l "app.kubernetes.io/instance=temporaltest
+kubectl port-forward services/temporaltest-web 8080:8080
+
+minikube start --cpus 3 --memory 4096
+minikube start --driver=docker
+
+minikube stop
+minikube delete
+minikube start --cpus 4 --memory 8192
+
+Persistance
+helm install \
+  --repo https://go.temporal.io/helm-charts \
+  --set server.replicaCount=1 \
+  --set cassandra.config.cluster_size=1 \
+  --set elasticsearch.replicas=1 \
+  --set prometheus.enabled=false \
+  --set grafana.enabled=false \
+  --set server.config.persistence.default.sql.driver="mysql" \
+  --set server.config.persistence.default.sql.host="mysql" \
+  --set server.config.persistence.default.sql.port=3306 \
+  --set server.config.persistence.default.sql.user="temporal" \
+  --set server.config.persistence.default.sql.password="temporal" \
+  --set server.config.persistence.default.sql.database="temporal" \
+  --set mysql.enabled=true \
+  --set mysql.primary.persistence.enabled=true \
+  --set mysql.primary.persistence.size=8Gi \
+  temporaltest temporal \
+  --timeout 60m
+helm upgrade --install temporaltest temporal \
+  --repo https://go.temporal.io/helm-charts \
+  --set server.replicaCount=1 \
+  --set cassandra.config.cluster_size=1 \
+  --set elasticsearch.replicas=1 \
+  --set prometheus.enabled=false \
+  --set grafana.enabled=false \
+  --set server.config.persistence.default.sql.driver="mysql" \
+  --set server.config.persistence.default.sql.host="mysql" \
+  --set server.config.persistence.default.sql.port=3306 \
+  --set server.config.persistence.default.sql.user="temporal" \
+  --set server.config.persistence.default.sql.password="temporal" \
+  --set server.config.persistence.default.sql.database="temporal" \
+  --set mysql.enabled=true \
+  --set mysql.primary.persistence.enabled=true \
+  --set mysql.primary.persistence.size=8Gi
+
+export DOCKER_HOST=unix:///var/run/docker.sock
+echo 'export DOCKER_HOST=unix:///var/run/docker.sock' >> ~/.bashrc
+source ~/.bashrc
+sudo systemctl restart docker
+docker version
+
+helm upgrade temporaltest temporal \
+  --repo https://go.temporal.io/helm-charts \
+  --set server.replicaCount=1 \
+  --set elasticsearch.enabled=false \
+  --set prometheus.enabled=false \
+  --set grafana.enabled=false \
+  --set server.config.persistence.default.sql.driver="mysql" \
+  --set server.config.persistence.default.sql.host="mysql" \
+  --set server.config.persistence.default.sql.port=3306 \
+  --set server.config.persistence.default.sql.user="temporal" \
+  --set server.config.persistence.default.sql.password="temporal" \
+  --set server.config.persistence.default.sql.database="temporal" \
+  --set mysql.enabled=true \
+  --set mysql.primary.persistence.enabled=true \
+  --set mysql.primary.persistence.size=8Gi
+Error: UPGRADE FAILED: "temporal" has no deployed releases
